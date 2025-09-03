@@ -1,0 +1,49 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Game rooms collection
+    match /game_rooms/{roomId} {
+      // Allow reading game rooms
+      allow read: if true;
+      
+      // Allow creating game rooms
+      allow create: if true;
+      
+      // Allow updating game rooms (only playerCount field)
+      allow update: if request.resource.data.diff(resource.data).affectedKeys()
+                     .hasOnly(['playerCount', 'lastUpdated']);
+      
+      // Allow deleting inactive game rooms
+      allow delete: if resource.data.active == false;
+      
+      // Players subcollection
+      match /players/{playerId} {
+        // Allow reading players
+        allow read: if true;
+        
+        // Allow creating players
+        allow create: if true;
+        
+        // Allow players to update only their own data
+        allow update: if request.auth == null || 
+                       request.auth.uid == playerId;
+        
+        // Allow deleting only their own data
+        allow delete: if request.auth == null || 
+                       request.auth.uid == playerId;
+      }
+    }
+    
+    // Store items collection (read-only)
+    match /store_items/{itemId} {
+      allow read: if true;
+      allow write: if false;
+    }
+    
+    // Default deny all other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

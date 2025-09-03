@@ -1,0 +1,151 @@
+.local-view {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.local-header {
+  flex: 0 0 auto;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--primary-color);
+  color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.local-header h1 {
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.player-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.player-color {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+}
+
+.player-name {
+  font-weight: 500;
+}
+
+.local-main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.marble-view {
+  flex: 1 1 auto;
+  min-height: 0; /* Needed for flexbox to respect overflow */
+  position: relative;
+}
+
+.controls-container {
+  flex: 0 0 auto;
+  padding: 1rem;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.debug-toggle-container {
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+.debug-toggle {
+  background-color: transparent;
+  border: 1px solid var(--primary-color);
+  color: var(--primary-color);
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  border-radius: 4px;
+}
+
+.debug-controls {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.debug-button {
+  background-color: #555;
+  border: none;
+  color: white;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.7rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.local-footer {
+  flex: 0 0 auto;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  background-color: white;
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.leave-button,
+.store-button {
+  flex: 1;
+  padding: 0.75rem;
+  font-size: 1rem;
+  border-radius: 6px;
+}
+
+.leave-button {
+  background-color: #f44336;
+  color: white;
+  border: none;
+}
+
+.store-button {
+  background-color: var(--secondary-color);
+  color: white;
+  border: none;
+}
+
+.loading-screen {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--background-color);
+}
+
+/* Landscape orientation optimizations */
+@media (orientation: landscape) {
+  .local-main {
+    flex-direction: row;
+  }
+  
+  .controls-container {
+    width: 300px;
+  }
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .local-footer {
+    background-color: #333;
+  }
+  
+  .debug-toggle {
+    border-color: #90caf9;
+    color: #90caf9;
+  }
+}
