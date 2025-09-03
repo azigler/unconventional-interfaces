@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import OrientationControls from './client/components/Controls/OrientationControls';
+import React, { useState, useEffect, useRef } from 'react';
+import OrientationControls from '../client/components/Controls/OrientationControls';
 import './OrientationDemo.css';
 
 const OrientationDemo: React.FC = () => {
@@ -7,6 +7,15 @@ const OrientationDemo: React.FC = () => {
   const [showDebug, setShowDebug] = useState(false);
   const [showError, setShowError] = useState(false);
   const [errorLog, setErrorLog] = useState<string[]>([]);
+  
+  // Refs to prevent infinite update loops
+  const errorLogRef = useRef<string[]>([]);
+  const isProcessingErrorRef = useRef(false);
+
+  // Update ref when state changes
+  useEffect(() => {
+    errorLogRef.current = errorLog;
+  }, [errorLog]);
 
   // Global error handler to catch and display any unhandled errors
   useEffect(() => {
@@ -17,31 +26,107 @@ const OrientationDemo: React.FC = () => {
     // Override console.error to capture error messages
     console.error = (...args) => {
       originalConsoleError.apply(console, args);
-      const errorMessage = args.map(arg => 
-        typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
-      ).join(' ');
       
-      setErrorLog(prev => [...prev, `ERROR: ${errorMessage}`].slice(-10));
-      setShowError(true);
+      // Prevent recursive calls and infinite loops
+      if (isProcessingErrorRef.current) {
+        return;
+      }
+      
+      try {
+        isProcessingErrorRef.current = true;
+        
+        const errorMessage = args.map(arg => {
+          if (arg instanceof Error) {
+            return arg.message;
+          }
+          if (typeof arg === 'object') {
+            try {
+              return JSON.stringify(arg);
+            } catch (e) {
+              return 'Object';
+            }
+          }
+          return String(arg);
+        }).join(' ');
+        
+        // Use timeout to break the call stack and prevent infinite loops
+        setTimeout(() => {
+          setErrorLog(prev => {
+            const newLog = [...prev, `ERROR: ${errorMessage}`].slice(-10);
+            errorLogRef.current = newLog;
+            return newLog;
+          });
+          setShowError(true);
+          isProcessingErrorRef.current = false;
+        }, 0);
+      } catch (e) {
+        isProcessingErrorRef.current = false;
+      }
     };
 
     // Override console.log to capture log messages in debug mode
     console.log = (...args) => {
       originalConsoleLog.apply(console, args);
-      if (showDebug) {
-        const logMessage = args.map(arg => 
-          typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
-        ).join(' ');
+      
+      // Only process logs when debug is enabled and not in a recursive call
+      if (!showDebug || isProcessingErrorRef.current) {
+        return;
+      }
+      
+      try {
+        isProcessingErrorRef.current = true;
         
-        setErrorLog(prev => [...prev, `LOG: ${logMessage}`].slice(-10));
+        const logMessage = args.map(arg => {
+          if (typeof arg === 'object') {
+            try {
+              return JSON.stringify(arg);
+            } catch (e) {
+              return 'Object';
+            }
+          }
+          return String(arg);
+        }).join(' ');
+        
+        // Use timeout to break the call stack
+        setTimeout(() => {
+          setErrorLog(prev => {
+            const newLog = [...prev, `LOG: ${logMessage}`].slice(-10);
+            errorLogRef.current = newLog;
+            return newLog;
+          });
+          isProcessingErrorRef.current = false;
+        }, 0);
+      } catch (e) {
+        isProcessingErrorRef.current = false;
       }
     };
 
     // Catch window errors
     window.onerror = (message, source, lineno, colno, error) => {
-      const errorMessage = `${message} at ${source}:${lineno}:${colno}`;
-      setErrorLog(prev => [...prev, `WINDOW ERROR: ${errorMessage}`].slice(-10));
-      setShowError(true);
+      if (isProcessingErrorRef.current) {
+        if (originalWindowError) {
+          return originalWindowError(message, source, lineno, colno, error);
+        }
+        return false;
+      }
+      
+      try {
+        isProcessingErrorRef.current = true;
+        
+        const errorMessage = `${message} at ${source}:${lineno}:${colno}`;
+        
+        setTimeout(() => {
+          setErrorLog(prev => {
+            const newLog = [...prev, `WINDOW ERROR: ${errorMessage}`].slice(-10);
+            errorLogRef.current = newLog;
+            return newLog;
+          });
+          setShowError(true);
+          isProcessingErrorRef.current = false;
+        }, 0);
+      } catch (e) {
+        isProcessingErrorRef.current = false;
+      }
       
       if (originalWindowError) {
         return originalWindowError(message, source, lineno, colno, error);
@@ -51,9 +136,27 @@ const OrientationDemo: React.FC = () => {
 
     // Catch unhandled promise rejections
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      const errorMessage = `Unhandled Promise Rejection: ${event.reason}`;
-      setErrorLog(prev => [...prev, errorMessage].slice(-10));
-      setShowError(true);
+      if (isProcessingErrorRef.current) {
+        return;
+      }
+      
+      try {
+        isProcessingErrorRef.current = true;
+        
+        const errorMessage = `Unhandled Promise Rejection: ${event.reason}`;
+        
+        setTimeout(() => {
+          setErrorLog(prev => {
+            const newLog = [...prev, errorMessage].slice(-10);
+            errorLogRef.current = newLog;
+            return newLog;
+          });
+          setShowError(true);
+          isProcessingErrorRef.current = false;
+        }, 0);
+      } catch (e) {
+        isProcessingErrorRef.current = false;
+      }
     };
     
     window.addEventListener('unhandledrejection', handleUnhandledRejection);

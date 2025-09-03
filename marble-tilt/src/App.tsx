@@ -1,39 +1,35 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
-import OrientationDemo from './OrientationDemo';
 
-function App() {
-  const [showDemo, setShowDemo] = useState(false);
+// Contexts
+import { WebSocketProvider } from './client/contexts/WebSocketContext';
+import { GameProvider } from './client/contexts/GameContext';
 
+// Views
+import HomeView from './client/views/HomeView';
+import LobbyView from './client/views/LobbyView';
+import LocalView from './client/views/LocalView';
+import OrientationDemo from './demo/OrientationDemo';
+
+const App: React.FC = () => {
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>Marble Tilt</h1>
-        <p>A game using device orientation controls</p>
-      </header>
-
-      {showDemo ? (
-        <OrientationDemo />
-      ) : (
-        <div className="start-container">
-          <p>
-            This demo uses your device's orientation sensors to control a marble.
-            You'll need to allow permission for device orientation if prompted.
-          </p>
-          <p>
-            For the best experience, use this on a mobile device with orientation sensors.
-            Make sure you're on HTTPS for the orientation API to work.
-          </p>
-          <button
-            className="start-button"
-            onClick={() => setShowDemo(true)}
-          >
-            Start Demo
-          </button>
-        </div>
-      )}
-    </div>
+    <Router>
+      <WebSocketProvider>
+        <GameProvider>
+          <div className="App">
+            <Routes>
+              <Route path="/" element={<HomeView />} />
+              <Route path="/lobby" element={<LobbyView />} />
+              <Route path="/local" element={<LocalView />} />
+              <Route path="/demo" element={<OrientationDemo />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
+        </GameProvider>
+      </WebSocketProvider>
+    </Router>
   );
-}
+};
 
 export default App;

@@ -6,7 +6,7 @@
   font-family: Arial, sans-serif;
 }
 
-h1 {
+.orientation-demo h1 {
   text-align: center;
   color: #2196f3;
 }
@@ -47,6 +47,7 @@ h1 {
 .demo-controls {
   display: flex;
   justify-content: center;
+  gap: 10px;
   margin: 20px 0;
 }
 
@@ -65,6 +66,67 @@ h1 {
   background-color: #7b1fa2;
 }
 
+.error-toggle {
+  background-color: #f44336;
+}
+
+.error-toggle:hover {
+  background-color: #d32f2f;
+}
+
+/* Error display */
+.error-display {
+  margin: 15px 0;
+  padding: 15px;
+  background-color: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  border-radius: 8px;
+}
+
+.error-display h3 {
+  margin-top: 0;
+  color: #d32f2f;
+}
+
+.error-log {
+  max-height: 200px;
+  overflow-y: auto;
+  margin: 10px 0;
+  padding: 10px;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.error-message {
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.error-message:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.error-close-button {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.error-close-button:hover {
+  background-color: #d32f2f;
+}
+
 .info-section {
   margin-top: 30px;
   background-color: rgba(33, 150, 243, 0.05);
@@ -81,10 +143,44 @@ h1 {
   line-height: 1.6;
 }
 
+.troubleshooting {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.troubleshooting h3 {
+  color: #ff9800;
+}
+
 /* Make it responsive */
 @media (max-width: 600px) {
+  .orientation-demo {
+    padding: 10px;
+  }
+  
+  .orientation-demo h1 {
+    font-size: 24px;
+  }
+  
   .marble-container {
     width: 250px;
     height: 250px;
+  }
+  
+  .demo-controls {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .debug-toggle {
+    width: 100%;
+    max-width: 200px;
+    margin-bottom: 10px;
+  }
+  
+  .error-log {
+    max-height: 150px;
+    font-size: 11px;
   }
 }

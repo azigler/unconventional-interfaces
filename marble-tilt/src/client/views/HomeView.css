@@ -1,0 +1,143 @@
+.home-view {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+
+.home-view h1 {
+  font-size: 48px;
+  color: #2196f3;
+  margin-bottom: 10px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.logo {
+  margin: 20px 0;
+}
+
+.marble-logo {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #64b5f6, #1976d2);
+  margin: 0 auto;
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+
+.marble-logo::after {
+  content: "";
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.7);
+  top: 20px;
+  left: 20px;
+}
+
+.tagline {
+  font-size: 18px;
+  color: #555;
+  margin-bottom: 40px;
+}
+
+.view-options {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 40px;
+}
+
+.view-option {
+  flex: 1;
+  padding: 20px;
+  margin: 0 10px;
+  background-color: white;
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.view-option:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+}
+
+.view-option h2 {
+  margin-top: 0;
+  color: #2196f3;
+}
+
+.view-option p {
+  margin-bottom: 20px;
+}
+
+.view-option.local {
+  border-top: 5px solid #4caf50;
+}
+
+.view-option.lobby {
+  border-top: 5px solid #ff9800;
+}
+
+.device-icon {
+  font-size: 36px;
+  margin-top: 10px;
+}
+
+.home-instructions {
+  background-color: rgba(33, 150, 243, 0.05);
+  border-radius: 8px;
+  padding: 20px;
+  text-align: left;
+  margin-bottom: 30px;
+}
+
+.home-instructions h2 {
+  margin-top: 0;
+  color: #2196f3;
+  text-align: center;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+.home-instructions p {
+  line-height: 1.6;
+  margin-bottom: 15px;
+}
+
+.demo-link {
+  margin-top: 20px;
+}
+
+.demo-link a {
+  color: #2196f3;
+  text-decoration: none;
+  padding: 5px 10px;
+  border: 1px solid #2196f3;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.demo-link a:hover {
+  background-color: rgba(33, 150, 243, 0.1);
+}
+
+@media (max-width: 768px) {
+  .view-options {
+    flex-direction: column;
+  }
+  
+  .view-option {
+    margin: 10px 0;
+  }
+  
+  .home-view h1 {
+    font-size: 36px;
+  }
+}

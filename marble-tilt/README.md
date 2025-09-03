@@ -1,69 +1,72 @@
-# React + TypeScript + Vite
+# Multiplayer Marble Tilt
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This part of the project implements a multiplayer marble game where each connected device controls a marble in a shared world using device orientation (tilt) controls.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Device Orientation Controls**: Tilt your phone to control your marble
+- **Multiplayer Experience**: Each connected device adds a marble to the shared world
+- **Real-time Synchronization**: Marble positions are synchronized across all clients
+- **Dual View System**:
+  - **LOBBY View**: Global view showing all marbles (ideal for tablets/desktops)
+  - **LOCAL View**: Control interface for individual players (ideal for phones)
 
-## Expanding the ESLint configuration
+## Implementation Details
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Frontend Components
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- **Device Orientation Hook**: Custom React hook to access device orientation data
+- **OrientationControls**: Component to handle device tilt and provide user controls
+- **MarbleWorld**: Component to display all marbles in the shared world
+- **WebSocketContext**: Context for WebSocket communication
+- **GameContext**: Context for game state management
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+### Backend Components
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- **WebSocket Server**: Handles real-time communication between clients
+- **Game State Management**: Tracks marble positions and player information
+- **Position Updates**: Processes and broadcasts position updates to all clients
+
+## How to Use
+
+1. Start both the client and server:
+   ```
+   npm run dev
+   ```
+
+2. Open the application:
+   - On a desktop/tablet: Navigate to `https://localhost:3000/lobby` to see all marbles
+   - On mobile devices: Navigate to `https://your-local-ip:3000/local` to control your marble
+
+3. For testing, you can use the orientation demo at `https://localhost:3000/demo`
+
+## Technical Notes
+
+- **HTTPS Required**: Device orientation API requires HTTPS, even for local development
+- **iOS Permission**: iOS 13+ requires explicit permission to access device orientation data
+- **Calibration**: The orientation controls include calibration to accommodate different holding positions
+
+## Directory Structure
+
 ```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+/
+├── client/                # Frontend code
+│   ├── components/        # React components
+│   │   ├── Controls/      # User control components
+│   │   └── MarbleWorld/   # Marble display components
+│   ├── contexts/          # React contexts
+│   │   ├── GameContext.tsx       # Game state management
+│   │   └── WebSocketContext.tsx  # WebSocket communication
+│   ├── hooks/             # Custom React hooks
+│   │   └── useDeviceOrientation.ts  # Device orientation hook
+│   ├── utils/             # Utility functions
+│   │   └── orientation.ts  # Orientation utility functions
+│   └── views/             # Main view components
+│       ├── HomeView.tsx   # Landing page
+│       ├── LocalView.tsx  # Mobile control view
+│       └── LobbyView.tsx  # Shared world view
+│
+└── server/                # Backend code
+    └── src/
+        └── server.ts      # WebSocket server implementation
 ```

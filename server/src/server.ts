@@ -1,134 +1,218 @@
 import express from 'express';
+import http from 'http';
 import https from 'https';
 import fs from 'fs';
 import path from 'path';
-import { WebSocketServer, WebSocket } from 'ws';
+import { WebSocketServer } from 'ws';
 import cors from 'cors';
 
-// Express app setup
-const app = express();
-app.use(cors());
-const PORT = process.env.PORT || 3001;
+// Game state
+interface Marble {
+  id: string;
+  x: number;
+  y: number;
+  color: string;
+  name?: string;
+}
 
-// SSL options using the certificates we generated
-const sslOptions = {
-  key: fs.readFileSync(path.resolve(__dirname, '../../certs/key.pem')),
-  cert: fs.readFileSync(path.resolve(__dirname, '../../certs/cert.pem'))
+interface GameState {
+  marbles: Marble[];
+}
+
+// Initialize game state
+const gameState: GameState = {
+  marbles: []
 };
 
-// Create HTTPS server
-const server = https.createServer(sslOptions, app);
+// Create Express app
+const app = express();
+app.use(cors());
+app.use(express.json());
 
-// WebSocket server
+// Create HTTP/HTTPS server
+let server;
+try {
+  // Try to use HTTPS (required for device orientation API)
+  const sslOptions = {
+    key: fs.readFileSync(path.join(__dirname, '../../certs/key.pem')),
+    cert: fs.readFileSync(path.join(__dirname, '../../certs/cert.pem'))
+  };
+  server = https.createServer(sslOptions, app);
+  console.log('Using HTTPS server');
+} catch (error) {
+  // Fall back to HTTP if certificates are not available
+  console.warn('SSL certificates not found, falling back to HTTP (device orientation may not work)');
+  server = http.createServer(app);
+}
+
+// Create WebSocket server
 const wss = new WebSocketServer({ server });
 
-// Game state
-const gameState = {
-  players: new Map(),
-  nextPlayerId: 1
+// Map to store WebSocket connections by player ID
+const clients = new Map<string, WebSocket>();
+
+// Helper functions
+const broadcast = (message: any) => {
+  const messageStr = JSON.stringify(message);
+  wss.clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(messageStr);
+    }
+  });
+};
+
+const sendToPlayer = (playerId: string, message: any) => {
+  const client = clients.get(playerId);
+  if (client && client.readyState === WebSocket.OPEN) {
+    client.send(JSON.stringify(message));
+  }
+};
+
+// Game logic
+const addPlayer = (playerId: string, marble: Marble): boolean => {
+  // Check if player already exists
+  const existingPlayer = gameState.marbles.find(m => m.id === playerId);
+  if (existingPlayer) {
+    return false;
+  }
+
+  // Add player to game
+  gameState.marbles.push({
+    ...marble,
+    // Center the marble
+    x: 0,
+    y: 0
+  });
+
+  return true;
+};
+
+const removePlayer = (playerId: string): boolean => {
+  const initialLength = gameState.marbles.length;
+  gameState.marbles = gameState.marbles.filter(marble => marble.id !== playerId);
+  return gameState.marbles.length !== initialLength;
+};
+
+const updatePlayerPosition = (playerId: string, x: number, y: number, absolute: boolean): boolean => {
+  const marbleIndex = gameState.marbles.findIndex(marble => marble.id === playerId);
+  if (marbleIndex === -1) return false;
+
+  const marble = gameState.marbles[marbleIndex];
+  
+  // Ensure the marble stays within bounds (assuming a 800x500 world)
+  const worldWidth = 800;
+  const worldHeight = 500;
+  const marbleRadius = 15; // Half of marble width
+  const maxX = worldWidth / 2 - marbleRadius;
+  const maxY = worldHeight / 2 - marbleRadius;
+  
+  if (absolute) {
+    // Absolute positioning
+    marble.x = Math.max(-maxX, Math.min(maxX, x));
+    marble.y = Math.max(-maxY, Math.min(maxY, y));
+  } else {
+    // Relative positioning
+    marble.x = Math.max(-maxX, Math.min(maxX, marble.x + x));
+    marble.y = Math.max(-maxY, Math.min(maxY, marble.y + y));
+  }
+  
+  return true;
 };
 
 // WebSocket connection handling
-wss.on('connection', (ws) => {
-  // Assign player ID and color
-  const playerId = gameState.nextPlayerId++;
-  const playerColor = getRandomColor();
-  
-  console.log(`Player ${playerId} connected`);
-  
-  // Add player to game state
-  gameState.players.set(playerId, {
-    id: playerId,
-    x: 250,
-    y: 250,
-    color: playerColor,
-    velocityX: 0,
-    velocityY: 0,
-    lastUpdate: Date.now()
-  });
-  
-  // Send player their ID
-  ws.send(JSON.stringify({
-    type: 'init',
-    playerId: playerId,
-    color: playerColor
-  }));
-  
-  // Send current game state to new player
-  const playersArray = Array.from(gameState.players.values());
+wss.on('connection', (ws: WebSocket) => {
+  console.log('Client connected');
+  let playerId: string | null = null;
+
+  // Send current game state to new client
   ws.send(JSON.stringify({
     type: 'gameState',
-    players: playersArray
+    data: gameState
   }));
-  
-  // Message handling
-  ws.on('message', (message) => {
+
+  // Handle messages from client
+  ws.on('message', (message: string) => {
     try {
-      const data = JSON.parse(message.toString());
-      
-      if (data.type === 'update') {
-        // Update player position
-        const player = gameState.players.get(data.playerId);
-        if (player) {
-          player.x = data.x;
-          player.y = data.y;
-          player.velocityX = data.velocityX;
-          player.velocityY = data.velocityY;
-          player.lastUpdate = Date.now();
-        }
+      const parsedMessage = JSON.parse(message.toString());
+      const { type, data } = parsedMessage;
+
+      switch (type) {
+        case 'joinGame':
+          playerId = data.playerId;
+          clients.set(playerId, ws);
+          
+          if (addPlayer(playerId, data.marble)) {
+            console.log(`Player ${playerId} joined`);
+            broadcast({
+              type: 'playerJoined',
+              data: {
+                player: data,
+                marbles: gameState.marbles
+              }
+            });
+          }
+          break;
         
-        // Broadcast updated game state to all clients
-        broadcastGameState();
+        case 'leaveGame':
+          if (data.playerId && removePlayer(data.playerId)) {
+            console.log(`Player ${data.playerId} left`);
+            broadcast({
+              type: 'playerLeft',
+              data: {
+                playerId: data.playerId,
+                marbles: gameState.marbles
+              }
+            });
+          }
+          break;
+        
+        case 'updatePosition':
+          if (data.playerId && updatePlayerPosition(data.playerId, data.x, data.y, data.absolute)) {
+            // Broadcast updated positions to all clients
+            broadcast({
+              type: 'gameState',
+              data: gameState
+            });
+          }
+          break;
+        
+        default:
+          console.log(`Unknown message type: ${type}`);
       }
     } catch (error) {
       console.error('Error processing message:', error);
     }
   });
-  
+
   // Handle disconnection
   ws.on('close', () => {
-    console.log(`Player ${playerId} disconnected`);
-    gameState.players.delete(playerId);
-    broadcastGameState();
+    console.log('Client disconnected');
+    
+    // Remove player from game if they were logged in
+    if (playerId) {
+      clients.delete(playerId);
+      
+      if (removePlayer(playerId)) {
+        console.log(`Player ${playerId} removed due to disconnection`);
+        broadcast({
+          type: 'playerLeft',
+          data: {
+            playerId,
+            marbles: gameState.marbles
+          }
+        });
+      }
+    }
   });
 });
 
-// Broadcast game state to all connected clients
-function broadcastGameState() {
-  const playersArray = Array.from(gameState.players.values());
-  const message = JSON.stringify({
-    type: 'gameState',
-    players: playersArray
-  });
-  
-  wss.clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(message);
-    }
-  });
-}
-
-// Generate random color for players
-function getRandomColor() {
-  const colors = [
-    '#2196F3', // Blue
-    '#4CAF50', // Green
-    '#F44336', // Red
-    '#FF9800', // Orange
-    '#9C27B0', // Purple
-    '#FFEB3B', // Yellow
-    '#E91E63', // Pink
-    '#00BCD4'  // Cyan
-  ];
-  return colors[Math.floor(Math.random() * colors.length)];
-}
-
-// Add a basic route for testing
-app.get('/', (req, res) => {
-  res.send('Marble Tilt WebSocket Server Running');
+// API endpoints
+app.get('/api/game-state', (req, res) => {
+  res.json(gameState);
 });
 
 // Start server
+const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
-  console.log(`Server running on https://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
