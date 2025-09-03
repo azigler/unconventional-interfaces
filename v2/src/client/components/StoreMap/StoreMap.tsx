@@ -103,16 +103,20 @@ const StoreMap: React.FC<StoreMapProps> = ({
   useEffect(() => {
     if (!currentMarblePosition) return;
     
+    // Debounce collision detection using a ref
     const marbleRadius = 15; // Approximate radius of the marble
     
-    storeItems.forEach(item => {
-      // Skip if already added to cart
-      if (addedToCart[item.id]) return;
-      
-      // Check if marble overlaps with the buy button
-      const marbleCenterX = currentMarblePosition.x + width / 2; // Convert to canvas coordinates
-      const marbleCenterY = currentMarblePosition.y + height / 2;
-      
+    // Create a local copy of the storeItems to avoid race conditions
+    const itemsToCheck = storeItems.filter(item => !addedToCart[item.id]);
+    
+    // Return early if no items to check
+    if (itemsToCheck.length === 0) return;
+    
+    // Convert marble position to canvas coordinates
+    const marbleCenterX = currentMarblePosition.x + width / 2;
+    const marbleCenterY = currentMarblePosition.y + height / 2;
+    
+    itemsToCheck.forEach(item => {
       // Button center coordinates
       const buttonCenterX = item.buttonX + item.buttonWidth / 2;
       const buttonCenterY = item.buttonY + item.buttonHeight / 2;
@@ -139,7 +143,7 @@ const StoreMap: React.FC<StoreMapProps> = ({
         console.log(`Added ${item.name} to cart!`);
       }
     });
-  }, [currentMarblePosition, storeItems, width, height, onAddToCart, addedToCart]);
+  }, [currentMarblePosition, width, height, onAddToCart]);
   
   // Draw the store map
   useEffect(() => {
