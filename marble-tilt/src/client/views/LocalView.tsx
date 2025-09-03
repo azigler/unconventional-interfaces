@@ -44,30 +44,42 @@ const LocalView: React.FC = () => {
   const updateMarblePhysics = (movement: { x: number, y: number }) => {
     if (!containerRef.current) return;
 
-    setMarblePosition(prev => {
-      // Get container dimensions
-      const containerWidth = containerRef.current?.clientWidth || 300;
-      const containerHeight = containerRef.current?.clientHeight || 300;
-      const marbleSize = 30; // Marble diameter in pixels
-      
-      // Apply movement with a reduced multiplier to adjust sensitivity
-      // Reduced from 4 to 1 to prevent ball from getting stuck in corners
-      const movementMultiplier = 1;
-      const newX = prev.x + movement.x * movementMultiplier;
-      const newY = prev.y + movement.y * movementMultiplier;
+      setMarblePosition(prev => {
+        // Get container dimensions
+        const containerWidth = containerRef.current?.clientWidth || 300;
+        const containerHeight = containerRef.current?.clientHeight || 300;
+        const marbleSize = 30; // Marble diameter in pixels
+        
+        // Apply movement with a reduced multiplier to adjust sensitivity
+        // Reduced from 4 to 1 to prevent ball from getting stuck in corners
+        const movementMultiplier = 1;
+        const newX = prev.x + movement.x * movementMultiplier;
+        const newY = prev.y + movement.y * movementMultiplier;
 
-      // Calculate the boundaries to keep the marble inside the container
-      const halfMarble = marbleSize / 2;
-      const maxX = containerWidth / 2 - halfMarble;
-      const maxY = containerHeight / 2 - halfMarble;
-      
-      // Apply boundary constraints
-      const boundedX = Math.max(-maxX, Math.min(maxX, newX));
-      const boundedY = Math.max(-maxY, Math.min(maxY, newY));
+        // Calculate the boundaries to keep the marble inside the container
+        const halfMarble = marbleSize / 2;
+        const maxX = containerWidth / 2 - halfMarble;
+        const maxY = containerHeight / 2 - halfMarble;
+        
+        // Apply boundary constraints
+        const boundedX = Math.max(-maxX, Math.min(maxX, newX));
+        const boundedY = Math.max(-maxY, Math.min(maxY, newY));
 
-      return { x: boundedX, y: boundedY };
-    });
-  };
+        return { x: boundedX, y: boundedY };
+      });
+      
+      // Continue the animation loop
+      animationFrameRef.current = requestAnimationFrame(updateFrame);
+    };
+    
+    // Start the animation loop
+    animationFrameRef.current = requestAnimationFrame(updateFrame);
+    
+    // Clean up on unmount or when playing state changes
+    return () => {
+      cancelAnimationFrame(animationFrameRef.current);
+    };
+  }, [isPlaying]);
 
   // Clean up animation frame on unmount
   useEffect(() => {

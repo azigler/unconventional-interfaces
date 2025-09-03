@@ -54,6 +54,7 @@ const StoreView: React.FC = () => {
   const productRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const buyHoleRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const animationFrameRef = useRef<number>(0);
+  const currentMovementRef = useRef<{ x: number, y: number }>({ x: 0, y: 0 });
 
   // Handle joining the game
   const handleJoinGame = () => {
@@ -75,41 +76,64 @@ const StoreView: React.FC = () => {
   // Handle orientation changes from the controls
   const handleOrientationChange = (movement: { x: number, y: number }) => {
     if (!isPlaying) return;
-
-    // Update the marble position with physics simulation
-    updateMarblePhysics(movement);
+    
+    // Store the current movement for use in animation frame
+    currentMovementRef.current = movement;
   };
 
-  // Update marble position based on movement input and physics
-  const updateMarblePhysics = (movement: { x: number, y: number }) => {
-    if (!containerRef.current) return;
-
-    setMarblePosition(prev => {
-      // Get container dimensions
-      const containerWidth = containerRef.current?.clientWidth || 300;
-      const containerHeight = containerRef.current?.clientHeight || 300;
-      const marbleSize = 30; // Marble diameter in pixels
+  // Animation loop for updating marble physics
+  useEffect(() => {
+    if (!isPlaying) return;
+    
+    const updateFrame = () => {
+      // Use the current movement value from the ref
+      const movement = currentMovementRef.current;
       
-      // Apply movement with an increased multiplier to adjust sensitivity
-      const movementMultiplier = 4;
-      const newX = prev.x + movement.x * movementMultiplier;
-      const newY = prev.y + movement.y * movementMultiplier;
+      if (!containerRef.current) {
+        animationFrameRef.current = requestAnimationFrame(updateFrame);
+        return;
+      }
 
-      // Calculate the boundaries to keep the marble inside the container
-      const halfMarble = marbleSize / 2;
-      const maxX = containerWidth / 2 - halfMarble;
-      const maxY = containerHeight / 2 - halfMarble;
+      setMarblePosition(prev => {
+        // Get container dimensions
+        const containerWidth = containerRef.current?.clientWidth || 300;
+        const containerHeight = containerRef.current?.clientHeight || 300;
+        const marbleSize = 30; // Marble diameter in pixels
+        
+        // Apply movement with an increased multiplier to adjust sensitivity
+        const movementMultiplier = 4;
+        const newX = prev.x + movement.x * movementMultiplier;
+        const newY = prev.y + movement.y * movementMultiplier;
+
+        // Calculate the boundaries to keep the marble inside the container
+        const halfMarble = marbleSize / 2;
+        const maxX = containerWidth / 2 - halfMarble;
+        const maxY = containerHeight / 2 - halfMarble;
+        
+        // Apply boundary constraints
+        const boundedX = Math.max(-maxX, Math.min(maxX, newX));
+        const boundedY = Math.max(-maxY, Math.min(maxY, newY));
+        
+        // Check for buy hole collision - only when there's actually movement
+        if (movement.x !== 0 || movement.y !== 0) {
+          checkBuyHoleCollision(boundedX, boundedY);
+        }
+        
+        return { x: boundedX, y: boundedY };
+      });
       
-      // Apply boundary constraints
-      const boundedX = Math.max(-maxX, Math.min(maxX, newX));
-      const boundedY = Math.max(-maxY, Math.min(maxY, newY));
-
-      // Check for buy hole collision
-      checkBuyHoleCollision(boundedX, boundedY);
-
-      return { x: boundedX, y: boundedY };
-    });
-  };
+      // Continue the animation loop
+      animationFrameRef.current = requestAnimationFrame(updateFrame);
+    };
+    
+    // Start the animation loop
+    animationFrameRef.current = requestAnimationFrame(updateFrame);
+    
+    // Clean up on unmount or when playing state changes
+    return () => {
+      cancelAnimationFrame(animationFrameRef.current);
+    };
+  }, [isPlaying]);
 
   // Check if marble collides with a buy hole
   const checkBuyHoleCollision = (marbleX: number, marbleY: number) => {
@@ -117,17 +141,19 @@ const StoreView: React.FC = () => {
     // Add a cooldown to prevent multiple purchases in quick succession
     if (now - lastBuyTime < 1000) return; 
 
+    // Only do this check if we have the required references
+    if (!containerRef.current) return;
+    
+    const containerRect = containerRef.current.getBoundingClientRect();
+    
+    // Convert marble coordinates to absolute position
+    const absoluteMarbleX = containerRect.left + containerRect.width / 2 + marbleX;
+    const absoluteMarbleY = containerRect.top + containerRect.height / 2 + marbleY;
+    
     buyHoleRefs.current.forEach((hole, productId) => {
       if (!hole) return;
       
       const holeRect = hole.getBoundingClientRect();
-      const containerRect = containerRef.current?.getBoundingClientRect();
-      
-      if (!containerRect) return;
-      
-      // Convert marble coordinates to absolute position
-      const absoluteMarbleX = containerRect.left + containerRect.width / 2 + marbleX;
-      const absoluteMarbleY = containerRect.top + containerRect.height / 2 + marbleY;
       
       // Check if marble is inside the buy hole
       if (

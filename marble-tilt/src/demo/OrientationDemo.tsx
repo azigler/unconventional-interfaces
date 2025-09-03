@@ -1,35 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
 import OrientationControls from '../client/components/Controls/OrientationControls';
-import { formatMovement } from '../client/utils/orientation';
-import { db } from '../firebase/config';
-import { doc, setDoc } from 'firebase/firestore';
 import './OrientationDemo.css';
 
 const OrientationDemo: React.FC = () => {
   const [movement, setMovement] = useState({ x: 0, y: 0 });
-  const [orientation, setOrientation] = useState<{ 
-    alpha: number | null, 
-    beta: number | null, 
-    gamma: number | null,
-    rawAlpha: number | null,
-    rawBeta: number | null,
-    rawGamma: number | null
-  }>({ 
-    alpha: null, 
-    beta: null, 
-    gamma: null,
-    rawAlpha: null,
-    rawBeta: null,
-    rawGamma: null
+  const [orientation, setOrientation] = useState<{ alpha: number | null, beta: number | null, gamma: number | null }>({ 
+    alpha: null, beta: null, gamma: null 
   });
   const [showDebug, setShowDebug] = useState(false);
   const [showError, setShowError] = useState(false);
   const [errorLog, setErrorLog] = useState<string[]>([]);
-  const [firestoreStatus, setFirestoreStatus] = useState<string | null>(null);
   
   // Refs to prevent infinite update loops
   const errorLogRef = useRef<string[]>([]);
   const isProcessingErrorRef = useRef(false);
+  const currentMovementRef = useRef<{ x: number, y: number }>({ x: 0, y: 0 });
+  const animationFrameRef = useRef<number>(0);
 
   // Update ref when state changes
   useEffect(() => {
@@ -189,48 +175,35 @@ const OrientationDemo: React.FC = () => {
     };
   }, [showDebug]);
 
+  // Animation loop for updating marble position
+  useEffect(() => {
+    const updateFrame = () => {
+      // Update marble position from movement
+      setMovement(currentMovementRef.current);
+      
+      // Continue animation loop
+      animationFrameRef.current = requestAnimationFrame(updateFrame);
+    };
+    
+    // Start animation loop
+    animationFrameRef.current = requestAnimationFrame(updateFrame);
+    
+    // Cleanup
+    return () => {
+      cancelAnimationFrame(animationFrameRef.current);
+    };
+  }, []);
+
   // Handle orientation changes from the controls
   const handleOrientationChange = (newMovement: { x: number, y: number }) => {
-    setMovement(newMovement);
+    // Store in ref for use in animation frame
+    currentMovementRef.current = newMovement;
   };
   
-  // Handle orientation data and write to Firestore
-  const handleOrientationData = (data: { 
-    alpha: number | null, 
-    beta: number | null, 
-    gamma: number | null,
-    rawAlpha: number | null,
-    rawBeta: number | null,
-    rawGamma: number | null
-  }) => {
+  // Handle orientation data
+  const handleOrientationData = (data: { alpha: number | null, beta: number | null, gamma: number | null }) => {
+    // Update state for display
     setOrientation(data);
-    
-    // Only write to Firestore if we have valid raw orientation data
-    if (data.rawAlpha !== null && data.rawBeta !== null && data.rawGamma !== null) {
-      // Write RAW orientation data to Firestore with fixed 3 decimal places
-      const orientationData = {
-        alpha: Number(data.rawAlpha.toFixed(3)),
-        beta: Number(data.rawBeta.toFixed(3)),
-        gamma: Number(data.rawGamma.toFixed(3)),
-        // Also include processed data for comparison
-        processedAlpha: data.alpha !== null ? Number(data.alpha.toFixed(3)) : null,
-        processedBeta: data.beta !== null ? Number(data.beta.toFixed(3)) : null,
-        processedGamma: data.gamma !== null ? Number(data.gamma.toFixed(3)) : null,
-        timestamp: new Date()
-      };
-      
-      // Write to Firestore
-      setDoc(doc(db, "test_collection", "marble"), orientationData)
-        .then(() => {
-          setFirestoreStatus("Orientation data written to Firestore");
-          // Clear status after 3 seconds
-          setTimeout(() => setFirestoreStatus(null), 3000);
-        })
-        .catch((error) => {
-          console.error("Error writing to Firestore:", error);
-          setFirestoreStatus("Error writing to Firestore");
-        });
-    }
   };
 
   // Calculate the marble position based on the movement values
@@ -275,28 +248,14 @@ const OrientationDemo: React.FC = () => {
         onOrientationData={handleOrientationData}
         debug={showDebug}
       />
-      
-      {/* Firestore status message */}
-      {firestoreStatus && (
-        <div className="firestore-status">
-          {firestoreStatus}
-        </div>
-      )}
 
       {/* Debug display for orientation values */}
       {showDebug && (
         <div className="debug-info orientation-debug">
-          <h4>Current Orientation Values (Processed):</h4>
+          <h4>Current Orientation Values:</h4>
           <p>Alpha: {orientation.alpha !== null ? orientation.alpha.toFixed(3) : 'null'}</p>
           <p>Beta: {orientation.beta !== null ? orientation.beta.toFixed(3) : 'null'}</p>
           <p>Gamma: {orientation.gamma !== null ? orientation.gamma.toFixed(3) : 'null'}</p>
-          
-          <h4>Raw Orientation Values (Sent to Firestore):</h4>
-          <p>Alpha: {orientation.rawAlpha !== null ? orientation.rawAlpha.toFixed(3) : 'null'}</p>
-          <p>Beta: {orientation.rawBeta !== null ? orientation.rawBeta.toFixed(3) : 'null'}</p>
-          <p>Gamma: {orientation.rawGamma !== null ? orientation.rawGamma.toFixed(3) : 'null'}</p>
-          
-          <p>These values are being written to Firestore document: <code>test_collection/marble</code></p>
         </div>
       )}
       
