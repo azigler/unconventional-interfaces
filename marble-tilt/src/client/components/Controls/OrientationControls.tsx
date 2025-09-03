@@ -5,7 +5,14 @@ import './OrientationControls.css';
 
 interface OrientationControlsProps {
   onOrientationChange?: (movement: { x: number, y: number }) => void;
-  onOrientationData?: (data: { alpha: number | null, beta: number | null, gamma: number | null }) => void;
+  onOrientationData?: (data: { 
+    alpha: number | null, 
+    beta: number | null, 
+    gamma: number | null,
+    rawAlpha: number | null,
+    rawBeta: number | null,
+    rawGamma: number | null
+  }) => void;
   debug?: boolean;
   sensitivity?: number;
 }
@@ -38,7 +45,8 @@ const OrientationControls: React.FC<OrientationControlsProps> = ({
     resetCalibration,
     sensitivity,
     setSensitivity,
-    permissionState
+    permissionState,
+    rawOrientation
   } = useDeviceOrientation();
 
   // Initialize with the provided sensitivity
@@ -55,9 +63,16 @@ const OrientationControls: React.FC<OrientationControlsProps> = ({
     
     // Pass orientation data to parent component
     if (onOrientationData) {
-      onOrientationData({ alpha, beta, gamma });
+      onOrientationData({ 
+        alpha, 
+        beta, 
+        gamma,
+        rawAlpha: rawOrientation.alpha,
+        rawBeta: rawOrientation.beta,
+        rawGamma: rawOrientation.gamma
+      });
     }
-  }, [alpha, beta, gamma, onOrientationChange, onOrientationData]);
+  }, [alpha, beta, gamma, rawOrientation, onOrientationChange, onOrientationData]);
 
   // Handle initial permission request (for iOS)
   useEffect(() => {
@@ -202,8 +217,10 @@ const OrientationControls: React.FC<OrientationControlsProps> = ({
       {/* Debug information */}
       {debug && (
         <div className="debug-info">
-          <h4>Orientation Data:</h4>
+          <h4>Orientation Data (Processed):</h4>
           <pre>{formatOrientationForDebug(alpha, beta, gamma)}</pre>
+          <h4>Raw Orientation Data:</h4>
+          <pre>{formatOrientationForDebug(rawOrientation.alpha, rawOrientation.beta, rawOrientation.gamma)}</pre>
           <p>Absolute: {absolute ? 'Yes' : 'No'}</p>
           <p>Movement: {formatMovement(orientationToMovement(beta, gamma, 8))}</p>
           <p>Support Status: {isSupported ? 'Supported' : 'Not supported'}</p>

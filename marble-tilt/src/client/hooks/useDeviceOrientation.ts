@@ -22,6 +22,11 @@ interface UseDeviceOrientationResult extends DeviceOrientationState {
   sensitivity: number;            // sensitivity setting (0-1)
   setSensitivity: (value: number) => void; // function to set sensitivity
   permissionState: 'prompt' | 'granted' | 'denied' | 'not-required' | 'unsupported' | 'error';
+  rawOrientation: {               // raw orientation data without calibration or sensitivity
+    alpha: number | null;
+    beta: number | null;
+    gamma: number | null;
+  };
 }
 
 /**
@@ -172,6 +177,17 @@ function useDeviceOrientation(smoothingFactor = 0.3): UseDeviceOrientationResult
     }
   }, [isSupported, isPermissionNeeded]);
 
+  // Also track raw orientation data
+  const [rawOrientation, setRawOrientation] = useState<{
+    alpha: number | null,
+    beta: number | null,
+    gamma: number | null
+  }>({
+    alpha: null,
+    beta: null,
+    gamma: null
+  });
+
   // Setup orientation event listener when permission is granted
   useEffect(() => {
     if (!isSupported || hasPermission !== true) {
@@ -184,6 +200,13 @@ function useDeviceOrientation(smoothingFactor = 0.3): UseDeviceOrientationResult
     const handleOrientation = (event: DeviceOrientationEvent) => {
       try {
         const { alpha, beta, gamma, absolute } = event;
+        
+        // Store raw orientation data
+        setRawOrientation({
+          alpha,
+          beta,
+          gamma
+        });
         
         // Get current sensitivity from ref for accurate real-time adjustments
         const currentSensitivity = sensitivityRef.current;
@@ -269,7 +292,8 @@ function useDeviceOrientation(smoothingFactor = 0.3): UseDeviceOrientationResult
     resetCalibration,
     sensitivity,
     setSensitivity,
-    permissionState
+    permissionState,
+    rawOrientation
   };
 }
 
