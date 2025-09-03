@@ -26,6 +26,12 @@ const HomeView: React.FC = () => {
           <p>See all marbles in the shared world</p>
           <div className="device-icon desktop-icon">🖥️</div>
         </Link>
+        
+        <Link to="/store" className="view-option store">
+          <h2>STORE View</h2>
+          <p>Shop with your marble as a controller!</p>
+          <div className="device-icon store-icon">🛒</div>
+        </Link>
       </div>
       
       <div className="home-instructions">
@@ -37,6 +43,10 @@ const HomeView: React.FC = () => {
         <p>
           <strong>Each Device:</strong> Every device that connects adds a new marble to the
           shared world. Tilt your phone to control your marble!
+        </p>
+        <p>
+          <strong>STORE Experience:</strong> Try our unconventional shopping interface where
+          you roll your marble into "buy holes" to add items to your cart!
         </p>
         <p>
           <strong>HTTPS Required:</strong> The device orientation API requires HTTPS.

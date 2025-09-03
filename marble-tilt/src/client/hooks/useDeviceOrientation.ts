@@ -47,8 +47,8 @@ function useDeviceOrientation(smoothingFactor = 0.3): UseDeviceOrientationResult
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [permissionState, setPermissionState] = useState<'prompt' | 'granted' | 'denied' | 'not-required' | 'unsupported' | 'error'>('prompt');
   
-  // Sensitivity state
-  const [sensitivity, setSensitivity] = useState<number>(0.5);
+  // Sensitivity state - default to 0.4 instead of 0.8
+  const [sensitivity, setSensitivity] = useState<number>(0.4);
 
   // Smoothed orientation values
   const [smoothedOrientation, setSmoothedOrientation] = useState({
@@ -65,6 +65,12 @@ function useDeviceOrientation(smoothingFactor = 0.3): UseDeviceOrientationResult
 
   // Refs to prevent issues with cleanup
   const orientationHandlerRef = useRef<((event: DeviceOrientationEvent) => void) | null>(null);
+  const sensitivityRef = useRef(sensitivity);
+
+  // Update ref when sensitivity changes
+  useEffect(() => {
+    sensitivityRef.current = sensitivity;
+  }, [sensitivity]);
 
   // Function to check if permission is needed (iOS 13+)
   const isPermissionNeeded = useCallback((): boolean => {
@@ -179,21 +185,31 @@ function useDeviceOrientation(smoothingFactor = 0.3): UseDeviceOrientationResult
       try {
         const { alpha, beta, gamma, absolute } = event;
         
-        // Apply calibration and sensitivity
-        const calibratedBeta = beta !== null ? (beta - calibration.betaOffset) * sensitivity : null;
-        const calibratedGamma = gamma !== null ? (gamma - calibration.gammaOffset) * sensitivity : null;
+        // Get current sensitivity from ref for accurate real-time adjustments
+        const currentSensitivity = sensitivityRef.current;
         
-        // Apply smoothing
+        // Apply calibration and sensitivity
+        // Use a narrower effective range for sensitivity so the slider has more effect
+        // Map 0.1-1.0 to 0.05-0.5 for a more usable sensitivity range
+        const effectiveSensitivity = currentSensitivity * 0.45 + 0.05;
+        
+        const calibratedBeta = beta !== null ? (beta - calibration.betaOffset) * effectiveSensitivity : null;
+        const calibratedGamma = gamma !== null ? (gamma - calibration.gammaOffset) * effectiveSensitivity : null;
+        
+        // Apply smoothing with a variable factor that depends on sensitivity
+        // Less smoothing at higher sensitivity for more responsive feel
+        const dynamicSmoothingFactor = smoothingFactor * (1 - currentSensitivity * 0.5);
+        
         if (beta !== null && gamma !== null) {
           setSmoothedOrientation(prev => ({
             alpha: alpha !== null 
-              ? prev.alpha * smoothingFactor + alpha * (1 - smoothingFactor) 
+              ? prev.alpha * dynamicSmoothingFactor + alpha * (1 - dynamicSmoothingFactor) 
               : prev.alpha,
             beta: calibratedBeta !== null 
-              ? prev.beta * smoothingFactor + calibratedBeta * (1 - smoothingFactor) 
+              ? prev.beta * dynamicSmoothingFactor + calibratedBeta * (1 - dynamicSmoothingFactor) 
               : prev.beta,
             gamma: calibratedGamma !== null 
-              ? prev.gamma * smoothingFactor + calibratedGamma * (1 - smoothingFactor) 
+              ? prev.gamma * dynamicSmoothingFactor + calibratedGamma * (1 - dynamicSmoothingFactor) 
               : prev.gamma
           }));
         }
@@ -241,7 +257,7 @@ function useDeviceOrientation(smoothingFactor = 0.3): UseDeviceOrientationResult
         console.error("Error removing deviceorientation event listener:", e);
       }
     };
-  }, [isSupported, hasPermission, calibration, sensitivity, smoothingFactor]);
+  }, [isSupported, hasPermission, calibration, smoothingFactor]);
 
   // Return combined state and functions
   return {

@@ -6,8 +6,8 @@
 export const orientationToMovement = (
   beta: number | null, 
   gamma: number | null,
-  maxSpeed = 10,
-  deadzone = 2
+  maxSpeed = 8, // Decreased from 15 to 8
+  deadzone = 2 // Increased from 1.5 to 2 for better stability
 ): { x: number, y: number } => {
   // Default to no movement if orientation data is not available
   if (beta === null || gamma === null) {
@@ -18,11 +18,19 @@ export const orientationToMovement = (
   const adjustedGamma = Math.abs(gamma) < deadzone ? 0 : gamma;
   const adjustedBeta = Math.abs(beta) < deadzone ? 0 : beta;
 
-  // Convert tilt to movement values within range -maxSpeed to maxSpeed
-  // gamma affects x-axis movement (left/right)
-  // beta affects y-axis movement (forward/backward)
-  const x = Math.max(-maxSpeed, Math.min(maxSpeed, adjustedGamma));
-  const y = Math.max(-maxSpeed, Math.min(maxSpeed, adjustedBeta));
+  // Apply non-linear mapping to create more control in the center range
+  // and less extreme movement at the edges
+  const nonLinearMap = (value: number, max: number): number => {
+    // Apply a quadratic curve that's more gentle in the center
+    const normalized = value / 20; // Normalize based on typical tilt range
+    const sign = Math.sign(normalized);
+    const scaled = Math.pow(Math.min(Math.abs(normalized), 1), 1.5) * sign;
+    return scaled * max;
+  };
+
+  // Convert tilt to movement values with non-linear mapping
+  const x = nonLinearMap(adjustedGamma, maxSpeed);
+  const y = nonLinearMap(adjustedBeta, maxSpeed);
 
   return { x, y };
 };

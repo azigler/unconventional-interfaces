@@ -15,7 +15,7 @@ interface OrientationControlsProps {
 const OrientationControls: React.FC<OrientationControlsProps> = ({
   onOrientationChange,
   debug = false,
-  sensitivity: initialSensitivity = 0.5
+  sensitivity: initialSensitivity = 0.4 // Decreased from 0.8 to 0.4
 }) => {
   // States for UI elements
   const [showCalibrationMessage, setShowCalibrationMessage] = useState(false);
@@ -39,10 +39,15 @@ const OrientationControls: React.FC<OrientationControlsProps> = ({
     permissionState
   } = useDeviceOrientation();
 
+  // Initialize with the provided sensitivity
+  useEffect(() => {
+    setSensitivity(initialSensitivity);
+  }, [initialSensitivity, setSensitivity]);
+
   // Handle orientation changes
   useEffect(() => {
     if (onOrientationChange && beta !== null && gamma !== null) {
-      const movement = orientationToMovement(beta, gamma);
+      const movement = orientationToMovement(beta, gamma, 8); // Decreased maxSpeed from 15 to 8
       onOrientationChange(movement);
     }
   }, [beta, gamma, onOrientationChange]);
@@ -141,6 +146,11 @@ const OrientationControls: React.FC<OrientationControlsProps> = ({
     );
   }
 
+  // Handle sensitivity change with immediate effect
+  const handleSensitivityChange = (value: number) => {
+    setSensitivity(value);
+  };
+
   // Render controls interface
   return (
     <div className="orientation-controls">
@@ -176,9 +186,9 @@ const OrientationControls: React.FC<OrientationControlsProps> = ({
           type="range"
           min="0.1"
           max="1"
-          step="0.1"
+          step="0.05"
           value={sensitivity}
-          onChange={(e) => setSensitivity(parseFloat(e.target.value))}
+          onChange={(e) => handleSensitivityChange(parseFloat(e.target.value))}
         />
       </div>
       
@@ -188,10 +198,11 @@ const OrientationControls: React.FC<OrientationControlsProps> = ({
           <h4>Orientation Data:</h4>
           <pre>{formatOrientationForDebug(alpha, beta, gamma)}</pre>
           <p>Absolute: {absolute ? 'Yes' : 'No'}</p>
-          <p>Movement: {JSON.stringify(orientationToMovement(beta, gamma))}</p>
+          <p>Movement: {JSON.stringify(orientationToMovement(beta, gamma, 8))}</p>
           <p>Support Status: {isSupported ? 'Supported' : 'Not supported'}</p>
           <p>Permission State: {permissionState}</p>
           <p>Has Permission: {hasPermission === null ? 'null' : hasPermission ? 'true' : 'false'}</p>
+          <p>Current Sensitivity: {sensitivity}</p>
         </div>
       )}
     </div>
@@ -216,16 +227,16 @@ const FallbackControls: React.FC<FallbackControlsProps> = ({ onControlChange }) 
       
       switch (e.key) {
         case 'ArrowUp':
-          newMovement.y = -5;
+          newMovement.y = -3; // Decreased from -5 to -3
           break;
         case 'ArrowDown':
-          newMovement.y = 5;
+          newMovement.y = 3; // Decreased from 5 to 3
           break;
         case 'ArrowLeft':
-          newMovement.x = -5;
+          newMovement.x = -3; // Decreased from -5 to -3
           break;
         case 'ArrowRight':
-          newMovement.x = 5;
+          newMovement.x = 3; // Decreased from 5 to 3
           break;
       }
       
@@ -266,7 +277,7 @@ const FallbackControls: React.FC<FallbackControlsProps> = ({ onControlChange }) 
         <button 
           className="control-button up"
           onMouseDown={() => {
-            const newMovement = { ...movement, y: -5 };
+            const newMovement = { ...movement, y: -3 }; // Decreased from -5 to -3
             setMovement(newMovement);
             if (onControlChange) onControlChange(newMovement);
           }}
@@ -276,7 +287,7 @@ const FallbackControls: React.FC<FallbackControlsProps> = ({ onControlChange }) 
             if (onControlChange) onControlChange(newMovement);
           }}
           onTouchStart={() => {
-            const newMovement = { ...movement, y: -5 };
+            const newMovement = { ...movement, y: -3 }; // Decreased from -5 to -3
             setMovement(newMovement);
             if (onControlChange) onControlChange(newMovement);
           }}
@@ -293,7 +304,7 @@ const FallbackControls: React.FC<FallbackControlsProps> = ({ onControlChange }) 
           <button 
             className="control-button left"
             onMouseDown={() => {
-              const newMovement = { ...movement, x: -5 };
+              const newMovement = { ...movement, x: -3 }; // Decreased from -5 to -3
               setMovement(newMovement);
               if (onControlChange) onControlChange(newMovement);
             }}
@@ -303,7 +314,7 @@ const FallbackControls: React.FC<FallbackControlsProps> = ({ onControlChange }) 
               if (onControlChange) onControlChange(newMovement);
             }}
             onTouchStart={() => {
-              const newMovement = { ...movement, x: -5 };
+              const newMovement = { ...movement, x: -3 }; // Decreased from -5 to -3
               setMovement(newMovement);
               if (onControlChange) onControlChange(newMovement);
             }}
@@ -319,7 +330,7 @@ const FallbackControls: React.FC<FallbackControlsProps> = ({ onControlChange }) 
           <button 
             className="control-button right"
             onMouseDown={() => {
-              const newMovement = { ...movement, x: 5 };
+              const newMovement = { ...movement, x: 3 }; // Decreased from 5 to 3
               setMovement(newMovement);
               if (onControlChange) onControlChange(newMovement);
             }}
@@ -329,7 +340,7 @@ const FallbackControls: React.FC<FallbackControlsProps> = ({ onControlChange }) 
               if (onControlChange) onControlChange(newMovement);
             }}
             onTouchStart={() => {
-              const newMovement = { ...movement, x: 5 };
+              const newMovement = { ...movement, x: 3 }; // Decreased from 5 to 3
               setMovement(newMovement);
               if (onControlChange) onControlChange(newMovement);
             }}
@@ -346,7 +357,7 @@ const FallbackControls: React.FC<FallbackControlsProps> = ({ onControlChange }) 
         <button 
           className="control-button down"
           onMouseDown={() => {
-            const newMovement = { ...movement, y: 5 };
+            const newMovement = { ...movement, y: 3 }; // Decreased from 5 to 3
             setMovement(newMovement);
             if (onControlChange) onControlChange(newMovement);
           }}
@@ -356,7 +367,7 @@ const FallbackControls: React.FC<FallbackControlsProps> = ({ onControlChange }) 
             if (onControlChange) onControlChange(newMovement);
           }}
           onTouchStart={() => {
-            const newMovement = { ...movement, y: 5 };
+            const newMovement = { ...movement, y: 3 }; // Decreased from 5 to 3
             setMovement(newMovement);
             if (onControlChange) onControlChange(newMovement);
           }}

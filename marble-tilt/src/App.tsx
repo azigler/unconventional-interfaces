@@ -10,6 +10,7 @@ import { GameProvider } from './client/contexts/GameContext';
 import HomeView from './client/views/HomeView';
 import LobbyView from './client/views/LobbyView';
 import LocalView from './client/views/LocalView';
+import StoreView from './client/views/StoreView';
 import OrientationDemo from './demo/OrientationDemo';
 
 const App: React.FC = () => {
@@ -22,6 +23,7 @@ const App: React.FC = () => {
               <Route path="/" element={<HomeView />} />
               <Route path="/lobby" element={<LobbyView />} />
               <Route path="/local" element={<LocalView />} />
+              <Route path="/store" element={<StoreView />} />
               <Route path="/demo" element={<OrientationDemo />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
