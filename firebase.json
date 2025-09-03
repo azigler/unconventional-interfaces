@@ -21,15 +21,21 @@
       ]
     }
   ],
-  "apphosting": {
-    "backendId": "goose",
-    "rootDir": "/",
+  "hosting": {
+    "public": "marble-tilt/dist",
     "ignore": [
-      "node_modules",
-      ".git",
-      "firebase-debug.log",
-      "firebase-debug.*.log",
-      "functions"
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "predeploy": [
+      "cd marble-tilt && npm install && npm run build"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
     ]
   }
 }

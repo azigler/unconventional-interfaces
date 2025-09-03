@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import useDeviceOrientation from '../../hooks/useDeviceOrientation';
-import { formatOrientationForDebug, orientationToMovement } from '../../utils/orientation';
+import { formatOrientationForDebug, orientationToMovement, formatMovement } from '../../utils/orientation';
 import './OrientationControls.css';
 
 interface OrientationControlsProps {
@@ -198,7 +198,7 @@ const OrientationControls: React.FC<OrientationControlsProps> = ({
           <h4>Orientation Data:</h4>
           <pre>{formatOrientationForDebug(alpha, beta, gamma)}</pre>
           <p>Absolute: {absolute ? 'Yes' : 'No'}</p>
-          <p>Movement: {JSON.stringify(orientationToMovement(beta, gamma, 8))}</p>
+          <p>Movement: {formatMovement(orientationToMovement(beta, gamma, 8))}</p>
           <p>Support Status: {isSupported ? 'Supported' : 'Not supported'}</p>
           <p>Permission State: {permissionState}</p>
           <p>Has Permission: {hasPermission === null ? 'null' : hasPermission ? 'true' : 'false'}</p>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import OrientationControls from '../client/components/Controls/OrientationControls';
+import { formatMovement } from '../client/utils/orientation';
 import './OrientationDemo.css';
 
 const OrientationDemo: React.FC = () => {

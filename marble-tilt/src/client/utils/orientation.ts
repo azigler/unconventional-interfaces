@@ -101,3 +101,14 @@ export const formatOrientationForDebug = (
     Gamma (y): ${gamma !== null ? gamma.toFixed(1) : 'null'}°
   `;
 };
+
+// Helper to format movement data with exactly 3 decimal places
+export const formatMovement = (movement: { x: number, y: number }): string => {
+  // Format as strings with exactly 3 decimal places
+  const xFormatted = movement.x.toFixed(3);
+  const yFormatted = movement.y.toFixed(3);
+  
+  // Return as a formatted string, not a JSON object with numeric values
+  // This ensures we always have 3 decimal places displayed
+  return `{"x":${xFormatted},"y":${yFormatted}}`;
+};
