@@ -93,3 +93,11 @@ export const formatOrientationForDebug = (
     Gamma (y): ${gamma !== null ? gamma.toFixed(1) : 'null'}°
   `;
 };
+
+// Helper to format movement data with 3 decimal places
+export const formatMovement = (movement: { x: number, y: number }): string => {
+  return JSON.stringify({
+    x: Number(movement.x.toFixed(3)),
+    y: Number(movement.y.toFixed(3))
+  });
+};
