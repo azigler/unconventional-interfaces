@@ -8,9 +8,10 @@ import {
   subscribeToroomPlayers,
   createGameRoom,
   getGameRooms,
-  subscribeToGameRooms
+  subscribeToGameRooms,
+  addItemToCart as addFirestoreItemToCart
 } from '../firebase/gameState';
-import { Player, GameRoom, GameState } from '@shared/types/game';
+import { Player, GameRoom, GameState, CartItem } from '@shared/types/game';
 
 interface GameContextType {
   gameState: GameState;
@@ -23,6 +24,7 @@ interface GameContextType {
   leaveGame: () => Promise<void>;
   updatePlayerPosition: (x: number, y: number) => void;
   createRoom: (name: string) => Promise<string>;
+  addItemToCart: (roomId: string, playerId: string, item: Omit<CartItem, 'id'>) => Promise<void>;
 }
 
 // Create context with default values
@@ -36,7 +38,8 @@ const GameContext = createContext<GameContextType>({
   joinGame: async () => {},
   leaveGame: async () => {},
   updatePlayerPosition: () => {},
-  createRoom: async () => ''
+  createRoom: async () => '',
+  addItemToCart: async () => {}
 });
 
 // Custom hook to use the game context
@@ -214,7 +217,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     joinGame,
     leaveGame,
     updatePlayerPosition,
-    createRoom
+    createRoom,
+    addItemToCart: addFirestoreItemToCart
   };
   
   return (

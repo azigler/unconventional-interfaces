@@ -71,23 +71,6 @@
   border-radius: 4px;
 }
 
-.debug-controls {
-  display: flex;
-  justify-content: center;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-}
-
-.debug-button {
-  background-color: #555;
-  border: none;
-  color: white;
-  padding: 0.3rem 0.6rem;
-  font-size: 0.7rem;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
 .local-footer {
   flex: 0 0 auto;
   padding: 1rem;

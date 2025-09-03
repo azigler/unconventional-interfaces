@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Player } from '@shared/types/game';
 import { useGame } from '../../contexts/GameContext';
 import Matter from 'matter-js';
@@ -24,66 +24,13 @@ const MarbleWorld: React.FC<MarbleWorldProps> = ({
   orientationData
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { players, currentPlayer, currentRoomId, updatePlayerPosition } = useGame();
-  
-  // Ref to track the last position we sent to the server
-  const lastPositionSentRef = useRef({ x: 0, y: 0 });
+  const { players, currentPlayer, updatePlayerPosition } = useGame();
   
   // Refs for Matter.js objects
   const engineRef = useRef<Matter.Engine>();
   const worldRef = useRef<Matter.World>();
   const renderRef = useRef<Matter.Render>();
   const playerBodiesRef = useRef<PlayerBody[]>([]);
-  const currentRoomIdRef = useRef<string | null>(null);
-  
-  // Keep track of the current room ID
-  useEffect(() => {
-    // Update the ref when the room ID changes
-    currentRoomIdRef.current = currentRoomId;
-  }, [currentRoomId]);
-  
-  // Initialize the last position sent to match current player's position
-  useEffect(() => {
-    if (currentPlayer) {
-      lastPositionSentRef.current = { 
-        x: currentPlayer.x || 0, 
-        y: currentPlayer.y || 0 
-      };
-    }
-  }, [currentPlayer]);
-  
-  // Function to update the player position without triggering state update
-  const updatePlayerPositionToServer = useCallback((x: number, y: number) => {
-    // This is a more direct way to update Firestore without triggering state updates
-    if (!currentPlayer || !currentRoomIdRef.current) return;
-    
-    const lastPos = lastPositionSentRef.current;
-    const minMovement = 1.0; // Minimum movement in pixels to trigger an update
-    
-    // Only update if position has changed significantly
-    if (Math.abs(x - lastPos.x) > minMovement || Math.abs(y - lastPos.y) > minMovement) {
-      // Update the last position we sent
-      lastPositionSentRef.current = { x, y };
-      
-      // Calculate velocity
-      const vx = x - lastPos.x;
-      const vy = y - lastPos.y;
-
-      // Debug the server update if the debug function exists
-      if (window.MarbleDebug) {
-        window.MarbleDebug.debugServerUpdate(x, y, vx, vy);
-        window.MarbleDebug.debugPositionDelta(lastPos, { x, y });
-      }
-      
-      // Directly update in Firestore without using the context function
-      import('../../firebase/gameState').then(module => {
-        module.updatePlayerPosition(currentRoomIdRef.current!, currentPlayer.id, x, y, vx, vy)
-          .catch(error => {
-            console.error('Error updating player position directly:', error);
-          });
-      });
-    }
-  }, [currentPlayer]);
   
   // Set up the Matter.js physics engine and rendering loop
   useEffect(() => {
@@ -137,10 +84,10 @@ const MarbleWorld: React.FC<MarbleWorldProps> = ({
         // Create circular body for the marble
         const marbleSize = 30;
         const body = Matter.Bodies.circle(x, y, marbleSize / 2, {
-          restitution: 0.7,  // Slightly reduced bounciness
-          friction: 0.05,    // Increased friction a bit
-          frictionAir: 0.02, // Increased air resistance
-          density: 0.005,    // Increased density
+          restitution: 0.8,  // Increased bounciness
+          friction: 0.01,    // Lower friction
+          frictionAir: 0.01, // Lower air resistance
+          density: 0.001,    // Even lighter
           label: player.id   // Use player ID as label
         });
         
@@ -190,12 +137,10 @@ const MarbleWorld: React.FC<MarbleWorldProps> = ({
           // But only do it at a reasonable interval to avoid too many updates
           if (now - lastUpdateTime > updateInterval) {
             lastUpdateTime = now;
-            
-            const newX = currentPlayerBody.position.x - width / 2;
-            const newY = currentPlayerBody.position.y - height / 2;
-            
-            // Use our custom update function that avoids state updates
-            updatePlayerPositionToServer(newX, newY);
+            updatePlayerPosition(
+              currentPlayerBody.position.x - width / 2,
+              currentPlayerBody.position.y - height / 2
+            );
           }
         }
       }
@@ -228,7 +173,7 @@ const MarbleWorld: React.FC<MarbleWorldProps> = ({
       Matter.Runner.stop(runner);
       Matter.Engine.clear(engine);
     };
-  }, [players, currentPlayer, isLocalView, width, height, updatePlayerPositionToServer]);
+  }, [players, currentPlayer, isLocalView, width, height, updatePlayerPosition]);
   
   // Apply forces based on device orientation
   useEffect(() => {
@@ -243,71 +188,33 @@ const MarbleWorld: React.FC<MarbleWorldProps> = ({
     
     if (!currentPlayerBody) return;
     
-    // Debug the orientation data if the debug function exists
-    if (window.MarbleDebug) {
-      window.MarbleDebug.debugOrientationData(orientationData);
-    }
+    // DIRECT VELOCITY CONTROL - More responsive than applying forces
+    // Use the orientation data to directly set velocity
+    const maxSpeed = 12; // Increased speed for even more dramatic movement
     
-    // INCREMENTAL FORCE APPLICATION - More natural rolling behavior
-    // Instead of directly setting velocity, apply forces based on orientation
-    const forceMagnitude = 0.005; // Smaller value for more gradual acceleration
-    const maxForce = 0.2; // Cap the maximum force to prevent extreme acceleration
+    // Apply velocity directly based on tilt direction
+    // This is much more responsive than applying forces
+    Matter.Body.setVelocity(currentPlayerBody, {
+      x: orientationData.x * maxSpeed,
+      y: orientationData.y * maxSpeed
+    });
     
-    // Only apply if there's significant tilt to avoid jitter
-    if (Math.abs(orientationData.x) > 0.1 || Math.abs(orientationData.y) > 0.1) {
-      // Calculate force based on tilt angle (capped by maxForce)
-      const forceX = Math.min(Math.max(orientationData.x * forceMagnitude, -maxForce), maxForce);
-      const forceY = Math.min(Math.max(orientationData.y * forceMagnitude, -maxForce), maxForce);
-      
-      // Debug before applying force
-      if (window.MarbleDebug) {
-        const oldVel = { x: currentPlayerBody.velocity.x, y: currentPlayerBody.velocity.y };
-        
-        // Apply the force to the center of the body
-        Matter.Body.applyForce(currentPlayerBody, currentPlayerBody.position, {
-          x: forceX,
-          y: forceY
-        });
-        
-        const newVel = { x: currentPlayerBody.velocity.x, y: currentPlayerBody.velocity.y };
-        window.MarbleDebug.debugVelocityChange(oldVel, newVel);
-      } else {
-        // Apply the force to the center of the body
-        Matter.Body.applyForce(currentPlayerBody, currentPlayerBody.position, {
-          x: forceX,
-          y: forceY
+    console.log('Setting velocity:', orientationData.x * maxSpeed, orientationData.y * maxSpeed);
+    
+    // Setup a timer to update velocity continuously
+    const velocityInterval = setInterval(() => {
+      // Only apply if there's significant tilt
+      if (Math.abs(orientationData.x) > 0.1 || Math.abs(orientationData.y) > 0.1) {
+        Matter.Body.setVelocity(currentPlayerBody, {
+          x: orientationData.x * maxSpeed,
+          y: orientationData.y * maxSpeed
         });
       }
-      
-      // Add a small amount of friction/damping to prevent eternal acceleration
-      const frictionFactor = 0.99;
-      Matter.Body.setVelocity(currentPlayerBody, {
-        x: currentPlayerBody.velocity.x * frictionFactor,
-        y: currentPlayerBody.velocity.y * frictionFactor
-      });
-    }
+    }, 50); // Update velocity every 50ms
     
-    // Add a maximum speed cap to prevent extremely fast movement
-    const currentSpeed = Math.sqrt(
-      currentPlayerBody.velocity.x * currentPlayerBody.velocity.x + 
-      currentPlayerBody.velocity.y * currentPlayerBody.velocity.y
-    );
-    
-    const maxSpeed = 10; // Maximum speed cap
-    
-    if (currentSpeed > maxSpeed) {
-      const scaleFactor = maxSpeed / currentSpeed;
-      Matter.Body.setVelocity(currentPlayerBody, {
-        x: currentPlayerBody.velocity.x * scaleFactor,
-        y: currentPlayerBody.velocity.y * scaleFactor
-      });
-    }
-    
-    // Debug the physics state after updates
-    if (window.MarbleDebug) {
-      window.MarbleDebug.debugPhysicsUpdate(currentPlayerBody);
-    }
-    
+    return () => {
+      clearInterval(velocityInterval);
+    };
   }, [orientationData.x, orientationData.y, currentPlayer]);
   
   // Draw background grid

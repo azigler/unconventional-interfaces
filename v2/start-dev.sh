@@ -6,10 +6,6 @@ if [ ! -f "localhost+2.pem" ] || [ ! -f "localhost+2-key.pem" ]; then
   npm run setup-certs
 fi
 
-# Set up debug script
-echo "Setting up debug script..."
-node setup-debug.js
-
 # Set environment variable for server to prefer IPv4
 export NODE_OPTIONS=--dns-result-order=ipv4first
 

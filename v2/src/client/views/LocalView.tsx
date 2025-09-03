@@ -2,23 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../contexts/GameContext';
 import OrientationControls from '../components/Controls/OrientationControls';
-import MarbleWorld from '../components/MarbleWorld/MarbleWorld';
+import MarbleWorldStore from '../components/MarbleWorldStore/MarbleWorldStore';
 import './LocalView.css';
-
-// Add debug functionality to window object
-declare global {
-  interface Window {
-    MarbleDebug?: {
-      debugOrientationData: (data: any) => void;
-      debugPhysicsUpdate: (body: any) => void;
-      debugServerUpdate: (x: number, y: number, vx: number, vy: number) => void;
-      debugVelocityChange: (oldVel: any, newVel: any) => void;
-      debugPositionDelta: (oldPos: any, newPos: any) => void;
-      enable: (option?: string) => void;
-      disable: (option?: string) => void;
-    };
-  }
-}
 
 interface MarblePosition {
   x: number;
@@ -41,20 +26,6 @@ const LocalView: React.FC = () => {
       navigate('/');
     }
   }, [gameState, currentPlayer, navigate]);
-  
-  // Debugging setup
-  useEffect(() => {
-    // Load the debugging script
-    const script = document.createElement('script');
-    script.src = '/debug-marbles.js';
-    script.async = true;
-    document.body.appendChild(script);
-    
-    return () => {
-      // Clean up script when component unmounts
-      document.body.removeChild(script);
-    };
-  }, []);
   
   // Handle orientation changes from the controls
   const handleOrientationChange = (movement: { x: number, y: number }) => {
@@ -89,7 +60,7 @@ const LocalView: React.FC = () => {
   return (
     <div className="local-view">
       <header className="local-header">
-        <h1>Marble Tilt</h1>
+        <h1>Marble Store</h1>
         <div className="player-info">
           <div 
             className="player-color" 
@@ -101,10 +72,10 @@ const LocalView: React.FC = () => {
       
       <main className="local-main">
         <div className="marble-view">
-          <MarbleWorld 
+          <MarbleWorldStore 
             isLocalView={true}
             width={window.innerWidth}
-            height={window.innerHeight * 0.5}
+            height={window.innerHeight * 0.7}
             orientationData={orientationData}
           />
         </div>
@@ -123,18 +94,6 @@ const LocalView: React.FC = () => {
             >
               {showDebug ? 'Hide Debug Info' : 'Show Debug Info'}
             </button>
-            
-            {/* Debug Control Buttons */}
-            {showDebug && window.MarbleDebug && (
-              <div className="debug-controls">
-                <button onClick={() => window.MarbleDebug?.enable()} className="debug-button">
-                  Enable All Debugging
-                </button>
-                <button onClick={() => window.MarbleDebug?.disable()} className="debug-button">
-                  Disable All Debugging
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </main>
@@ -145,13 +104,6 @@ const LocalView: React.FC = () => {
           className="leave-button"
         >
           Leave Game
-        </button>
-        
-        <button
-          onClick={() => navigate('/store')}
-          className="store-button"
-        >
-          Visit Store
         </button>
       </footer>
     </div>

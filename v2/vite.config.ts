@@ -50,9 +50,7 @@ export default defineConfig({
         secure: false,
         ws: true
       }
-    },
-    // Serve the debug script from the root
-    middlewareMode: false
+    }
   },
   build: {
     outDir: 'dist',

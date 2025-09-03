@@ -4,7 +4,6 @@ import { GameProvider } from './contexts/GameContext';
 import HomeView from './views/HomeView';
 import LobbyView from './views/LobbyView';
 import LocalView from './views/LocalView';
-import StoreView from './views/StoreView';
 import './App.css';
 
 const App = () => {
@@ -27,7 +26,6 @@ const App = () => {
           <Route path="/" element={<HomeView isOrientationSupported={isOrientationSupported} />} />
           <Route path="/lobby" element={<LobbyView />} />
           <Route path="/local" element={<LocalView />} />
-          <Route path="/store" element={<StoreView />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
