@@ -1,15 +1,24 @@
 import React, { useEffect } from 'react';
 import MarbleWorld from '../components/MarbleWorld/MarbleWorld';
-import { useGame } from '../contexts/GameContext';
+import { useGameState } from '../contexts/GameStateContext';
 import './LobbyView.css';
 
 const LobbyView: React.FC = () => {
-  const { marbles, joinGame, leaveGame, gameState, errorMessage } = useGame();
+  const { players, joinGame, leaveGame, gameState, errorMessage } = useGameState();
+
+  // Convert Firestore players to marble format for MarbleWorld component
+  const marbles = players.map(player => ({
+    id: player.id,
+    x: player.x,
+    y: player.y,
+    color: player.color,
+    name: player.name
+  }));
 
   // Auto-join the game when the lobby is opened
   useEffect(() => {
     if (gameState === 'idle') {
-      joinGame();
+      joinGame('Lobby Host');
     }
 
     return () => {
@@ -25,7 +34,7 @@ const LobbyView: React.FC = () => {
       
       <div className="game-status">
         {gameState === 'joining' && <p>Connecting to game...</p>}
-        {gameState === 'active' && <p>Game active: {marbles.length} player(s) connected</p>}
+        {gameState === 'active' && <p>Game active: {players.length} player(s) connected</p>}
         {gameState === 'error' && <p className="error">Error: {errorMessage}</p>}
       </div>
 
@@ -35,13 +44,13 @@ const LobbyView: React.FC = () => {
 
       <div className="player-list">
         <h2>Players</h2>
-        {marbles.length === 0 ? (
+        {players.length === 0 ? (
           <p>No players connected</p>
         ) : (
           <ul>
-            {marbles.map(marble => (
-              <li key={marble.id} style={{ color: marble.color }}>
-                {marble.name || `Player ${marble.id.substring(0, 4)}`}
+            {players.map(player => (
+              <li key={player.id} style={{ color: player.color }}>
+                {player.name} {player.cart.length > 0 ? `(${player.cart.length} items)` : ''}
               </li>
             ))}
           </ul>

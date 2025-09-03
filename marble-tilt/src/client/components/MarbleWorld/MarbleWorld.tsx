@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import './MarbleWorld.css';
 
 interface Marble {
@@ -7,6 +7,7 @@ interface Marble {
   y: number;
   color: string;
   name?: string;
+  cart?: Array<{ id: string; name: string; quantity: number }>;
 }
 
 interface MarbleWorldProps {
@@ -28,7 +29,14 @@ const MarbleWorld: React.FC<MarbleWorldProps> = ({ marbles }) => {
           }}
           data-id={marble.id}
         >
-          {marble.name && <div className="marble-name">{marble.name}</div>}
+          {marble.name && (
+            <div className="marble-info">
+              <div className="marble-name">{marble.name}</div>
+              {marble.cart && marble.cart.length > 0 && (
+                <div className="marble-cart-count">{marble.cart.length}</div>
+              )}
+            </div>
+          )}
         </div>
       ))}
     </div>

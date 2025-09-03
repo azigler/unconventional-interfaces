@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import OrientationControls from '../components/Controls/OrientationControls';
+import { useGameState } from '../contexts/GameStateContext';
 import './LocalView.css';
 
 interface MarblePosition {
@@ -10,38 +11,36 @@ interface MarblePosition {
 const LocalView: React.FC = () => {
   const [playerName, setPlayerName] = useState<string>('');
   const [showDebug, setShowDebug] = useState<boolean>(false);
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [marblePosition, setMarblePosition] = useState<MarblePosition>({ x: 0, y: 0 });
-  const [marbleColor, setMarbleColor] = useState<string>('#2196F3');
   const containerRef = useRef<HTMLDivElement>(null);
   const animationFrameRef = useRef<number>(0);
+  
+  // Get game state from context
+  const { 
+    currentPlayer, 
+    joinGame, 
+    updatePlayerPosition, 
+    gameState, 
+    errorMessage 
+  } = useGameState();
 
   // Handle joining the game
   const handleJoinGame = () => {
-    setIsPlaying(true);
-    // Generate random color for the marble
-    const colors = [
-      '#2196F3', // Blue
-      '#F44336', // Red
-      '#4CAF50', // Green
-      '#FF9800', // Orange
-      '#9C27B0', // Purple
-      '#00BCD4', // Cyan
-      '#FFEB3B', // Yellow
-      '#795548', // Brown
-    ];
-    setMarbleColor(colors[Math.floor(Math.random() * colors.length)]);
+    joinGame(playerName);
   };
 
   // Handle orientation changes from the controls
   const handleOrientationChange = (movement: { x: number, y: number }) => {
-    if (!isPlaying) return;
+    if (gameState !== 'active' || !currentPlayer) return;
 
     // Update the marble position with physics simulation
     updateMarblePhysics(movement);
+    
+    // Send movement to Firestore
+    updatePlayerPosition(movement.x, movement.y);
   };
 
-  // Update marble position based on movement input and physics
+  // Update local marble position based on movement input and physics
   const updateMarblePhysics = (movement: { x: number, y: number }) => {
     if (!containerRef.current) return;
 
@@ -78,7 +77,7 @@ const LocalView: React.FC = () => {
   }, []);
 
   // Show join screen if not yet joined
-  if (!isPlaying) {
+  if (gameState === 'idle' || gameState === 'joining') {
     return (
       <div className="local-view">
         <h1>Marble Tilt</h1>
@@ -101,10 +100,17 @@ const LocalView: React.FC = () => {
             <button 
               onClick={handleJoinGame}
               className="join-button"
+              disabled={gameState === 'joining'}
             >
-              Start Game
+              {gameState === 'joining' ? 'Joining...' : 'Start Game'}
             </button>
           </div>
+          
+          {errorMessage && (
+            <div className="error-message">
+              {errorMessage}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -118,10 +124,10 @@ const LocalView: React.FC = () => {
       <div className="player-info">
         <div 
           className="player-color" 
-          style={{ backgroundColor: marbleColor }}
+          style={{ backgroundColor: currentPlayer?.color || '#cccccc' }}
         ></div>
         <p className="player-name">
-          {playerName || 'Your Marble'}
+          {currentPlayer?.name || 'Your Marble'}
         </p>
       </div>
 
@@ -132,7 +138,7 @@ const LocalView: React.FC = () => {
         <div 
           className="marble" 
           style={{
-            backgroundColor: marbleColor,
+            backgroundColor: currentPlayer?.color || '#cccccc',
             transform: `translate(${marblePosition.x}px, ${marblePosition.y}px)`
           }}
         ></div>
@@ -142,7 +148,7 @@ const LocalView: React.FC = () => {
         <OrientationControls 
           onOrientationChange={handleOrientationChange}
           debug={showDebug}
-          sensitivity={0.4} // Decreased default sensitivity from 0.8 to 0.4
+          sensitivity={0.4} 
         />
       </div>
 

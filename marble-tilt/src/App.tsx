@@ -5,6 +5,7 @@ import './App.css';
 // Contexts
 import { WebSocketProvider } from './client/contexts/WebSocketContext';
 import { GameProvider } from './client/contexts/GameContext';
+import { GameStateProvider } from './client/contexts/GameStateContext';
 
 // Views
 import HomeView from './client/views/HomeView';
@@ -17,7 +18,7 @@ const App: React.FC = () => {
   return (
     <Router>
       <WebSocketProvider>
-        <GameProvider>
+        <GameStateProvider>
           <div className="App">
             <Routes>
               <Route path="/" element={<HomeView />} />
@@ -28,7 +29,7 @@ const App: React.FC = () => {
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </div>
-        </GameProvider>
+        </GameStateProvider>
       </WebSocketProvider>
     </Router>
   );
