@@ -59,6 +59,39 @@ For mobile testing, use your computer's local IP address instead of localhost.
 
 ## Project Structure
 
+### Main Project Directory vs. /marble-tilt/
+
+The project follows a monorepo structure with two main components:
+
+1. **Main Project Directory (`/unconventional-interfaces/`)** - The root folder containing:
+   - Documentation files (README.md, SPEC.md, etc.)
+   - Both frontend and backend components
+   - Project configuration
+   - Subagent definitions
+   - Shared resources
+
+2. **`/marble-tilt/` Directory** - Contains specifically the frontend application:
+   - React components and hooks
+   - Game UI and logic
+   - Device orientation controls
+   - Client-side code with its own dependencies
+
+3. **`/server/` Directory** - Contains the backend application:
+   - WebSocket server for multiplayer
+   - Game state management
+   - Backend logic with its own dependencies
+
+This separation follows a common pattern in full-stack development, allowing:
+- Separate concerns between frontend and backend
+- Independent dependency management
+- Easier deployment options
+- Shared project coordination
+
+The device orientation controls implemented by Subagent 3 are located in:
+- `/marble-tilt/src/client/hooks/useDeviceOrientation.ts`
+- `/marble-tilt/src/client/components/Controls/OrientationControls.tsx`
+- `/marble-tilt/src/client/utils/orientation.ts`
+
 ```
 /
 ├── marble-tilt/         # Frontend (React + Vite)
