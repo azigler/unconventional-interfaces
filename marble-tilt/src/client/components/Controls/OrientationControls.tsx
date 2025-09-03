@@ -5,6 +5,7 @@ import './OrientationControls.css';
 
 interface OrientationControlsProps {
   onOrientationChange?: (movement: { x: number, y: number }) => void;
+  onOrientationData?: (data: { alpha: number | null, beta: number | null, gamma: number | null }) => void;
   debug?: boolean;
   sensitivity?: number;
 }
@@ -14,6 +15,7 @@ interface OrientationControlsProps {
  */
 const OrientationControls: React.FC<OrientationControlsProps> = ({
   onOrientationChange,
+  onOrientationData,
   debug = false,
   sensitivity: initialSensitivity = 0.5
 }) => {
@@ -45,7 +47,12 @@ const OrientationControls: React.FC<OrientationControlsProps> = ({
       const movement = orientationToMovement(beta, gamma);
       onOrientationChange(movement);
     }
-  }, [beta, gamma, onOrientationChange]);
+    
+    // Pass orientation data to parent component
+    if (onOrientationData) {
+      onOrientationData({ alpha, beta, gamma });
+    }
+  }, [alpha, beta, gamma, onOrientationChange, onOrientationData]);
 
   // Handle initial permission request (for iOS)
   useEffect(() => {
