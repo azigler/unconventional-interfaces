@@ -1,0 +1,15 @@
+{
+  "name": "marble-tilt",
+  "version": "1.0.0",
+  "description": "Multiplayer marble game using phone tilt controls",
+  "scripts": {
+    "client": "cd marble-tilt && npm run dev",
+    "server": "cd server && npm run dev",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "install-all": "npm install && cd marble-tilt && npm install && cd ../server && npm install",
+    "build": "cd marble-tilt && npm run build && cd ../server && npm run build"
+  },
+  "dependencies": {
+    "concurrently": "^7.0.0"
+  }
+}

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Marble Tilt - Device Orientation Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            overflow: hidden;
+            touch-action: none;
+        }
+        
+        #permission-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        #permission-button {
+            padding: 12px 24px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        #canvas-container {
+            position: relative;
+            width: 90%;
+            max-width: 500px;
+            aspect-ratio: 1 / 1;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        #game-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        
+        #orientation-data {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .value {
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        
+        .not-supported {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Marble Tilt</h1>
+    <p>Orientation Test - Tilt your device to move the marble</p>
+    
+    <div id="permission-container">
+        <button id="permission-button">Enable Tilt Controls</button>
+    </div>
+    
+    <div id="canvas-container">
+        <canvas id="game-canvas"></canvas>
+    </div>
+    
+    <div id="orientation-data">
+        <p>Beta (forward/backward): <span id="beta-value" class="value">0</span>°</p>
+        <p>Gamma (left/right): <span id="gamma-value" class="value">0</span>°</p>
+        <p>Status: <span id="status">Waiting for permission...</span></p>
+    </div>
+    
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const permissionButton = document.getElementById('permission-button');
+        const betaValue = document.getElementById('beta-value');
+        const gammaValue = document.getElementById('gamma-value');
+        const statusElement = document.getElementById('status');
+        
+        // Set canvas dimensions
+        function resizeCanvas() {
+            const container = document.getElementById('canvas-container');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+        
+        // Initial resize and event listener
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Marble properties
+        const marble = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            radius: 20,
+            color: '#2196F3',
+            speed: 0.1,
+            velocityX: 0,
+            velocityY: 0,
+            friction: 0.98  // Friction coefficient
+        };
+        
+        // Device orientation setup
+        function setupDeviceOrientation() {
+            // Check if DeviceOrientationEvent is available
+            if (window.DeviceOrientationEvent) {
+                // For iOS 13+ devices that require permission
+                if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                    permissionButton.addEventListener('click', async () => {
+                        try {
+                            const permissionState = await DeviceOrientationEvent.requestPermission();
+                            if (permissionState === 'granted') {
+                                window.addEventListener('deviceorientation', handleOrientation);
+                                permissionButton.style.display = 'none';
+                                statusElement.textContent = 'Tilt controls active';
+                            } else {
+                                statusElement.textContent = 'Permission denied';
+                            }
+                        } catch (error) {
+                            console.error('Error requesting device orientation permission:', error);
+                            statusElement.textContent = 'Error requesting permission';
+                        }
+                    });
+                } else {
+                    // For non-iOS devices or older iOS versions
+                    window.addEventListener('deviceorientation', handleOrientation);
+                    permissionButton.style.display = 'none';
+                    statusElement.textContent = 'Tilt controls active';
+                }
+            } else {
+                statusElement.innerHTML = '<span class="not-supported">Device orientation not supported by this device/browser</span>';
+                permissionButton.style.display = 'none';
+                setupFallbackControls();
+            }
+        }
+        
+        // Handle the orientation data
+        function handleOrientation(event) {
+            // Beta represents front-to-back tilt (forward/backward)
+            const beta = event.beta;
+            // Gamma represents left-to-right tilt (left/right)
+            const gamma = event.gamma;
+            
+            // Update display
+            betaValue.textContent = beta ? beta.toFixed(1) : 'N/A';
+            gammaValue.textContent = gamma ? gamma.toFixed(1) : 'N/A';
+            
+            // Convert orientation data to marble acceleration
+            // Limit tilt values to reasonable ranges (-45 to 45 degrees)
+            if (beta !== null && gamma !== null) {
+                const tiltX = Math.max(-45, Math.min(45, gamma)) / 45;
+                const tiltY = Math.max(-45, Math.min(45, beta)) / 45;
+                
+                // Apply acceleration to the marble
+                marble.velocityX += tiltX * marble.speed;
+                marble.velocityY += tiltY * marble.speed;
+            }
+        }
+        
+        // Fallback controls using arrow keys
+        function setupFallbackControls() {
+            statusElement.textContent = 'Using keyboard fallback controls (arrow keys)';
+            
+            window.addEventListener('keydown', (event) => {
+                const keyForce = 0.5;
+                switch(event.key) {
+                    case 'ArrowUp':
+                        marble.velocityY -= keyForce;
+                        break;
+                    case 'ArrowDown':
+                        marble.velocityY += keyForce;
+                        break;
+                    case 'ArrowLeft':
+                        marble.velocityX -= keyForce;
+                        break;
+                    case 'ArrowRight':
+                        marble.velocityX += keyForce;
+                        break;
+                }
+            });
+        }
+        
+        // Game loop
+        function gameLoop() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Apply friction
+            marble.velocityX *= marble.friction;
+            marble.velocityY *= marble.friction;
+            
+            // Update position
+            marble.x += marble.velocityX;
+            marble.y += marble.velocityY;
+            
+            // Boundary collision
+            if (marble.x - marble.radius < 0) {
+                marble.x = marble.radius;
+                marble.velocityX = -marble.velocityX * 0.5; // Bounce with energy loss
+            } else if (marble.x + marble.radius > canvas.width) {
+                marble.x = canvas.width - marble.radius;
+                marble.velocityX = -marble.velocityX * 0.5;
+            }
+            
+            if (marble.y - marble.radius < 0) {
+                marble.y = marble.radius;
+                marble.velocityY = -marble.velocityY * 0.5;
+            } else if (marble.y + marble.radius > canvas.height) {
+                marble.y = canvas.height - marble.radius;
+                marble.velocityY = -marble.velocityY * 0.5;
+            }
+            
+            // Draw marble
+            ctx.beginPath();
+            ctx.arc(marble.x, marble.y, marble.radius, 0, Math.PI * 2);
+            ctx.fillStyle = marble.color;
+            ctx.fill();
+            
+            // Draw marble shadow
+            ctx.beginPath();
+            ctx.arc(marble.x + 3, marble.y + 3, marble.radius, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fill();
+            
+            // Add a shine effect to the marble
+            const gradient = ctx.createRadialGradient(
+                marble.x - marble.radius/3, 
+                marble.y - marble.radius/3, 
+                marble.radius/10,
+                marble.x, 
+                marble.y, 
+                marble.radius
+            );
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.beginPath();
+            ctx.arc(marble.x, marble.y, marble.radius, 0, Math.PI * 2);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            
+            // Request next frame
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Initialize
+        setupDeviceOrientation();
+        gameLoop();
+    </script>
+</body>
+</html>
