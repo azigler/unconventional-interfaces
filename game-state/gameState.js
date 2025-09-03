@@ -68,9 +68,16 @@ async function getItemsFromCollection() {
         const items = [];
         
         snapshot.forEach(doc => {
+            // Get the document data
+            const data = doc.data();
+            
+            // Remove any 'id' field from the data to prevent overwriting the Firestore document ID
+            const { id: _ignoredId, ...cleanData } = data;
+            
+            // Create the final item with the correct document ID
             items.push({
                 id: doc.id,
-                ...doc.data()
+                ...cleanData
             });
         });
         
@@ -82,25 +89,31 @@ async function getItemsFromCollection() {
 }
 
 // Add an item to the game state with a random location
-async function addItemToGameState(itemId, itemData) {
+async function addItemToGameState(itemData) {
     try {
         // Generate random x and y coordinates
         const { x, y } = getRandomLocation();
         
-        // Create a new document in the game state items collection
+        // Extract the original item ID
+        const originalItemId = itemData.id;
+        
+        // Remove the id property from the data to avoid duplication
+        const { id: _ignoredId, ...cleanData } = itemData;
+        
+        // Create a new document in the game state items collection with THE SAME ID as the original item
         // Using direct x,y coordinates instead of a location object
-        await db.collection(GAME_ITEMS_COLLECTION).doc(itemId).set({
-            ...itemData,
+        await db.collection(GAME_ITEMS_COLLECTION).doc(originalItemId).set({
+            ...cleanData,
             x: x,
             y: y,
             addedToGame: true,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         
-        console.log(`Item ${itemId} added to game state with location: (${x}, ${y})`);
-        return itemId;
+        console.log(`Item added to game state with ID ${originalItemId} at location: (${x}, ${y})`);
+        return originalItemId;
     } catch (error) {
-        console.error(`Error adding item ${itemId} to game state:`, error);
+        console.error(`Error adding item to game state:`, error);
         return null;
     }
 }
@@ -151,7 +164,7 @@ async function initializeGame() {
         
         for (const item of selectedItems) {
             // Add item to game state
-            const id = await addItemToGameState(item.id, item);
+            const id = await addItemToGameState(item);
             if (id) gameItemIds.push(id);
             
             // Wait for 1 second before adding the next item
@@ -252,7 +265,7 @@ async function runGame() {
             const item = getRandomItem();
             
             // Add item to the game state
-            const itemId = await addItemToGameState(item.id, item);
+            const itemId = await addItemToGameState(item);
             
             if (itemId) {
                 console.log(`Added item ${itemId} (${item.name || 'unnamed'})`);
@@ -423,18 +436,21 @@ async function getScore() {
             const item = doc.data();
             // Store the price, defaulting to 0 if no price is found
             itemPriceMap.set(doc.id, item.price || 0);
+            console.log(`Item ${doc.id} price: $${item.price || 0}`);
         });
         
         // Calculate score for each player
         const scores = {};
         
         for (const playerDoc of playersSnapshot.docs) {
+            console.log(`Calculating score for player: ${playerDoc.data().name || 'Unknown'}`);
             const player = playerDoc.data();
             const cart = player.cart || [];
             let totalPrice = 0;
-            
+            console.log(cart)
             // Calculate total price of items in cart
             for (const itemId of cart) {
+                console.log(`Item ${itemId}`);
                 const price = itemPriceMap.get(itemId) || 0;
                 totalPrice += price;
             }
@@ -464,9 +480,17 @@ function subscribeToGameItems(callback) {
         .onSnapshot(snapshot => {
             const items = [];
             snapshot.forEach(doc => {
+                // Get the document data
+                const data = doc.data();
+                
+                // Create a new item object
+                // Remove any 'id' field from the data to prevent overwriting the Firestore document ID
+                const { id: _ignoredId, ...cleanData } = data;
+                
+                // Create the final item with the correct document ID
                 items.push({
                     id: doc.id,
-                    ...doc.data()
+                    ...cleanData
                 });
             });
             callback(items);
@@ -482,9 +506,17 @@ function subscribeToPlayers(callback) {
         .onSnapshot(snapshot => {
             const players = [];
             snapshot.forEach(doc => {
+                // Get the document data
+                const data = doc.data();
+                
+                // Create a new player object
+                // Remove any 'id' field from the data to prevent overwriting the Firestore document ID
+                const { id: _ignoredId, ...cleanData } = data;
+                
+                // Create the final player with the correct document ID
                 players.push({
                     id: doc.id,
-                    ...doc.data()
+                    ...cleanData
                 });
             });
             callback(players);
@@ -674,7 +706,7 @@ async function showAllItems() {
                 addButton.style.marginTop = '10px';
                 addButton.addEventListener('click', async () => {
                     // Add item to game state
-                    await addItemToGameState(item.id, item);
+                    await addItemToGameState(item);
                     
                     // Show confirmation
                     const confirmation = document.createElement('div');
