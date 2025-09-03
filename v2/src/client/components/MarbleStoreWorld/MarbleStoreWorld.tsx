@@ -25,7 +25,7 @@ const MarbleStoreWorld: React.FC<MarbleStoreWorldProps> = ({
   onAddToCart
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { players, currentPlayer, currentRoomId } = useGame();
+  const { players, currentPlayer, currentRoomId, updatePlayerPosition } = useGame();
   
   // Refs for Matter.js objects
   const engineRef = useRef<Matter.Engine>();
@@ -143,11 +143,19 @@ const MarbleStoreWorld: React.FC<MarbleStoreWorldProps> = ({
           const now = performance.now();
           if (now - lastPositionUpdateTime > positionUpdateInterval) {
             lastPositionUpdateTime = now;
-            // Update current player position for collision detection
+            
+            // Calculate game coordinates (relative to center)
+            const gameX = currentPlayerBody.position.x - width / 2;
+            const gameY = currentPlayerBody.position.y - height / 2;
+            
+            // Update current player position for collision detection in the local component
             setCurrentPlayerPosition({
-              x: currentPlayerBody.position.x - width / 2,
-              y: currentPlayerBody.position.y - height / 2
+              x: gameX,
+              y: gameY
             });
+            
+            // Update position in Firestore
+            updatePlayerPosition(gameX, gameY);
           }
         }
       }
@@ -177,7 +185,7 @@ const MarbleStoreWorld: React.FC<MarbleStoreWorldProps> = ({
       Matter.Runner.stop(runner);
       Matter.Engine.clear(engine);
     };
-  }, [players, currentPlayer, width, height]);
+  }, [players, currentPlayer, width, height, updatePlayerPosition]);
   
   // Apply forces based on device orientation
   useEffect(() => {
