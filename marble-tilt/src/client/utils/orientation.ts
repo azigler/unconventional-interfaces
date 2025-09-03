@@ -94,10 +94,13 @@ export const formatOrientationForDebug = (
   `;
 };
 
-// Helper to format movement data with 3 decimal places
+// Helper to format movement data with exactly 3 decimal places
 export const formatMovement = (movement: { x: number, y: number }): string => {
-  return JSON.stringify({
-    x: Number(movement.x.toFixed(3)),
-    y: Number(movement.y.toFixed(3))
-  });
+  // Format as strings with exactly 3 decimal places
+  const xFormatted = movement.x.toFixed(3);
+  const yFormatted = movement.y.toFixed(3);
+  
+  // Return as a formatted string, not a JSON object with numeric values
+  // This ensures we always have 3 decimal places displayed
+  return `{"x":${xFormatted},"y":${yFormatted}}`;
 };

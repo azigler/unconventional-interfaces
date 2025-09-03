@@ -28,6 +28,9 @@
       "**/.*",
       "**/node_modules/**"
     ],
+    "predeploy": [
+      "cd marble-tilt && npm install && npm run build"
+    ],
     "rewrites": [
       {
         "source": "**",
