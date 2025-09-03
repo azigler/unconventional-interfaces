@@ -1,92 +1,54 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../contexts/GameContext';
+import { StoreItem, CartItem as CartItemType } from '@shared/types/game';
+import MarbleStoreWorld from '../components/MarbleStoreWorld/MarbleStoreWorld';
+import OrientationControls from '../components/Controls/OrientationControls';
 import './StoreView.css';
-
-// Sample store items
-const STORE_ITEMS = [
-  {
-    id: '1',
-    name: 'Speed Boost',
-    description: 'Increase your marble speed by 20%',
-    price: 100,
-    image: '/items/speed-boost.png',
-    category: 'powerup'
-  },
-  {
-    id: '2',
-    name: 'Jumbo Size',
-    description: 'Make your marble 50% larger',
-    price: 150,
-    image: '/items/jumbo-size.png',
-    category: 'appearance'
-  },
-  {
-    id: '3',
-    name: 'Shrink Ray',
-    description: 'Reduce your marble size by 30%',
-    price: 120,
-    image: '/items/shrink-ray.png',
-    category: 'powerup'
-  },
-  {
-    id: '4',
-    name: 'Golden Marble',
-    description: 'A luxurious golden marble skin',
-    price: 300,
-    image: '/items/golden-marble.png',
-    category: 'appearance'
-  },
-  {
-    id: '5',
-    name: 'Bouncy Marble',
-    description: 'Your marble bounces with more energy',
-    price: 200,
-    image: '/items/bouncy-marble.png',
-    category: 'effect'
-  },
-  {
-    id: '6',
-    name: 'Rainbow Trail',
-    description: 'Leave a colorful trail behind your marble',
-    price: 250,
-    image: '/items/rainbow-trail.png',
-    category: 'effect'
-  }
-];
-
-interface CartItem {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-}
 
 const StoreView: React.FC = () => {
   const navigate = useNavigate();
-  const { currentPlayer } = useGame();
+  const { currentPlayer, gameState } = useGame();
   
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [cart, setCart] = useState<CartItemType[]>([]);
+  const [orientationData, setOrientationData] = useState<{ x: number, y: number }>({ x: 0, y: 0 });
+  const [showDebug, setShowDebug] = useState<boolean>(false);
   
-  // Filter items by category
-  const filteredItems = activeCategory === 'all' 
-    ? STORE_ITEMS 
-    : STORE_ITEMS.filter(item => item.category === activeCategory);
+  // Redirect to home if not in active game
+  useEffect(() => {
+    if (gameState !== 'active' || !currentPlayer) {
+      navigate('/');
+    }
+  }, [gameState, currentPlayer, navigate]);
+  
+  // Handle orientation changes from the controls
+  const handleOrientationChange = (movement: { x: number, y: number }) => {
+    if (!currentPlayer) return;
+    
+    // Store orientation data for the physics simulation
+    setOrientationData(movement);
+    
+    // Debug output for orientation data
+    if (showDebug) {
+      console.log('Orientation data:', movement);
+    }
+  };
   
   // Add item to cart
-  const addToCart = (itemId: string) => {
-    const item = STORE_ITEMS.find(item => item.id === itemId);
-    if (!item) return;
+  const addToCart = (item: StoreItem) => {
+    // Play a sound effect
+    const addSound = new Audio('/sounds/add-to-cart.mp3');
+    addSound.volume = 0.5;
+    addSound.play().catch(e => console.log('Sound play error:', e));
     
     setCart(prevCart => {
       // Check if item is already in cart
-      const existingItem = prevCart.find(cartItem => cartItem.id === itemId);
+      const existingItem = prevCart.find(cartItem => cartItem.id === item.id);
       
       if (existingItem) {
         // Increment quantity
         return prevCart.map(cartItem => 
-          cartItem.id === itemId 
+          cartItem.id === item.id 
             ? { ...cartItem, quantity: cartItem.quantity + 1 } 
             : cartItem
         );
@@ -122,21 +84,28 @@ const StoreView: React.FC = () => {
     navigate('/local');
   };
   
+  // Loading state
+  if (!currentPlayer) {
+    return (
+      <div className="store-view">
+        <div className="loading-screen">
+          <h2>Loading Store...</h2>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div className="store-view">
       <header className="store-header">
         <h1>Marble Store</h1>
         
         <div className="player-info">
-          {currentPlayer && (
-            <>
-              <div 
-                className="player-color" 
-                style={{ backgroundColor: currentPlayer.color }}
-              ></div>
-              <span className="player-name">{currentPlayer.name}</span>
-            </>
-          )}
+          <div 
+            className="player-color" 
+            style={{ backgroundColor: currentPlayer.color }}
+          ></div>
+          <span className="player-name">{currentPlayer.name}</span>
           <button 
             onClick={handleBackToGame}
             className="back-button"
@@ -148,36 +117,6 @@ const StoreView: React.FC = () => {
       
       <main className="store-main">
         <aside className="store-sidebar">
-          <div className="category-filter">
-            <h2>Categories</h2>
-            <ul className="category-list">
-              <li 
-                className={activeCategory === 'all' ? 'active' : ''}
-                onClick={() => setActiveCategory('all')}
-              >
-                All Items
-              </li>
-              <li 
-                className={activeCategory === 'powerup' ? 'active' : ''}
-                onClick={() => setActiveCategory('powerup')}
-              >
-                Power Ups
-              </li>
-              <li 
-                className={activeCategory === 'appearance' ? 'active' : ''}
-                onClick={() => setActiveCategory('appearance')}
-              >
-                Appearance
-              </li>
-              <li 
-                className={activeCategory === 'effect' ? 'active' : ''}
-                onClick={() => setActiveCategory('effect')}
-              >
-                Effects
-              </li>
-            </ul>
-          </div>
-          
           <div className="cart-section">
             <h2>Your Cart</h2>
             
@@ -217,33 +156,36 @@ const StoreView: React.FC = () => {
               </>
             )}
           </div>
+          
+          <div className="controls-container">
+            <OrientationControls 
+              onOrientationChange={handleOrientationChange}
+              debug={showDebug}
+              sensitivity={0.4} 
+            />
+            
+            <div className="debug-toggle-container">
+              <button
+                onClick={() => setShowDebug(!showDebug)}
+                className="debug-toggle"
+              >
+                {showDebug ? 'Hide Debug Info' : 'Show Debug Info'}
+              </button>
+            </div>
+          </div>
         </aside>
         
-        <div className="store-items">
-          <h2>{activeCategory === 'all' ? 'All Items' : `${activeCategory.charAt(0).toUpperCase() + activeCategory.slice(1)}s`}</h2>
-          
-          <div className="items-grid">
-            {filteredItems.map(item => (
-              <div key={item.id} className="item-card">
-                <div className="item-image">
-                  {/* Use a placeholder div for now */}
-                  <div className="image-placeholder">{item.name.charAt(0)}</div>
-                </div>
-                <div className="item-details">
-                  <h3>{item.name}</h3>
-                  <p>{item.description}</p>
-                  <div className="item-price-row">
-                    <span className="item-price">${item.price}</span>
-                    <button 
-                      onClick={() => addToCart(item.id)}
-                      className="add-to-cart-button"
-                    >
-                      Add to Cart
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
+        <div className="store-world-container">
+          {currentPlayer && (
+            <MarbleStoreWorld
+              width={window.innerWidth - 300} // Adjust for sidebar width
+              height={window.innerHeight - 60} // Adjust for header height
+              orientationData={orientationData}
+              onAddToCart={addToCart}
+            />
+          )}
+          <div className="store-instructions">
+            <p>Roll your marble over the BUY buttons to add items to your cart!</p>
           </div>
         </div>
       </main>

@@ -24,6 +24,10 @@ const MarbleStoreWorld: React.FC<MarbleStoreWorldProps> = ({
   orientationData = { x: 0, y: 0 },
   onAddToCart
 }) => {
+  console.log('MarbleStoreWorld component mounted');
+  console.log('Dimensions:', width, height);
+  console.log('Orientation data:', orientationData);
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { players, currentPlayer, currentRoomId, updatePlayerPosition } = useGame();
   
@@ -95,6 +99,8 @@ const MarbleStoreWorld: React.FC<MarbleStoreWorldProps> = ({
         const x = width / 2 + player.x;
         const y = height / 2 + player.y;
         
+        console.log(`Creating marble for player ${player.name} at position (${x}, ${y})`);
+        
         // Create circular body for the marble
         const marbleSize = 30;
         const body = Matter.Bodies.circle(x, y, marbleSize / 2, {
@@ -107,6 +113,8 @@ const MarbleStoreWorld: React.FC<MarbleStoreWorldProps> = ({
         
         return { playerId: player.id, body };
       });
+    
+    console.log(`Created ${playerBodiesRef.current.length} player bodies`);
     
     // Add player bodies to the world
     Matter.Composite.add(world, playerBodiesRef.current.map(pb => pb.body));
@@ -131,6 +139,12 @@ const MarbleStoreWorld: React.FC<MarbleStoreWorldProps> = ({
     const render = () => {
       // Clear canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw a colored background to debug the canvas visibility
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';  // Slightly visible background 
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      console.log('Rendering frame');
       
       // Get current player position if available
       if (currentPlayer) {
@@ -249,6 +263,8 @@ const MarbleStoreWorld: React.FC<MarbleStoreWorldProps> = ({
     y: number,
     player: Player
   ) => {
+    console.log(`Drawing marble for player ${player.name} at (${x}, ${y})`);
+    
     const marbleSize = 30;
     const isCurrentPlayer = player.id === currentPlayer?.id;
     

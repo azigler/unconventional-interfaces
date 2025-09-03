@@ -1,0 +1,27 @@
+.marble-store-world {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.store-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none; /* Allow clicks to pass through to canvas */
+}
+
+.marble-world-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2; /* Make sure marbles are drawn on top */
+  background-color: rgba(0, 0, 0, 0.05); /* Slightly visible to debug */
+  border: 1px solid rgba(255, 0, 0, 0.2); /* Red border for debugging */
+}
